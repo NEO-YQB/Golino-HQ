@@ -341,6 +341,36 @@ export async function addChatMessage(deptId: string, message: ChatMessage) {
   writeJsonFile('chats.json', allChats);
 }
 
+export async function clearChatHistory(deptId?: string): Promise<boolean> {
+  if (isDbConnected()) {
+    try {
+      if (deptId) {
+        await prisma.meetingMessage.deleteMany({
+          where: { departmentId: deptId },
+        });
+      } else {
+        await prisma.meetingMessage.deleteMany({});
+      }
+    } catch (err) {
+      console.error('Database clearChatHistory error:', err);
+    }
+  }
+
+  const allChats = readJsonFile<Record<string, ChatMessage[]>>(
+    'chats.json',
+    INITIAL_CHAT_HISTORY
+  );
+  if (deptId) {
+    allChats[deptId] = [];
+  } else {
+    for (const key of Object.keys(allChats)) {
+      allChats[key] = [];
+    }
+  }
+  writeJsonFile('chats.json', allChats);
+  return true;
+}
+
 // -------------------------------------------------------------
 // Boardroom Sessions
 // -------------------------------------------------------------

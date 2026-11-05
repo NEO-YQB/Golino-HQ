@@ -6,6 +6,7 @@ import {
   addChatMessage,
   saveTask,
   getDepartmentKnowledge,
+  clearChatHistory,
 } from '@/lib/storage';
 import { askDepartmentLead } from '@/lib/ai';
 import { ChatMessage } from '@/types';
@@ -81,5 +82,17 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error('Meeting API error:', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const deptId = searchParams.get('deptId') || undefined;
+    await clearChatHistory(deptId);
+    return NextResponse.json({ success: true, cleared: true });
+  } catch (err) {
+    console.error('Clear chat API error:', err);
+    return NextResponse.json({ error: 'Failed to clear chat' }, { status: 500 });
   }
 }

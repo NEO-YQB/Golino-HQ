@@ -12,6 +12,7 @@ import {
   Clock,
   ShieldCheck,
   CheckSquare,
+  RotateCcw,
 } from 'lucide-react';
 import { Department, ChatMessage } from '@/types';
 
@@ -98,6 +99,20 @@ export default function MeetingRoomPage() {
     setInputText(prompt);
   };
 
+  const handleClearChat = async () => {
+    if (!confirm('آیا از پاک کردن کامل تاریخچه این گفتگو اطمینان داری افشین جان؟')) return;
+    try {
+      const res = await fetch(`/api/meeting?deptId=${deptId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setMessages([]);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (loading || !department) {
     return (
       <div className="py-20 flex flex-col items-center justify-center gap-3">
@@ -138,10 +153,18 @@ export default function MeetingRoomPage() {
           </div>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2">
-          <span className="text-xs text-emerald-400 font-medium flex items-center gap-1 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleClearChat}
+            className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-rose-400 bg-[#161f30] hover:bg-rose-500/10 px-3 py-1.5 rounded-xl border border-[#25334c] transition-colors"
+            title="پاک‌کردن کامل پیام‌های این چت و شروع مجدد"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>شروع مجدد گفتگو</span>
+          </button>
+          <span className="hidden sm:flex text-xs text-emerald-400 font-medium items-center gap-1 bg-emerald-500/10 px-2.5 py-1.5 rounded-xl border border-emerald-500/20">
             <ShieldCheck className="w-3.5 h-3.5" />
-            اتصال جلسه اختصاصی
+            اتصال امن
           </span>
         </div>
       </div>

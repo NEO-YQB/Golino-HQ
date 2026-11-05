@@ -26,21 +26,27 @@ export async function askDepartmentLead(
         systemInstruction += `\n\n📌 اطلاعات و پیش‌زمینه دپارتمان تو در سیستم:\n${departmentKnowledge}`;
       }
 
-      // Build clean history for Gemini: strictly user -> model -> user -> model
+      // Build clean alternating history for Gemini: strictly user -> model -> user -> model -> user
       const contents: { role: 'user' | 'model'; parts: { text: string }[] }[] = [];
       const validHistory = history.filter((m) => m.text && m.text.trim().length > 0).slice(-10);
 
       for (const msg of validHistory) {
         const role = msg.sender === 'ceo' ? 'user' : 'model';
+
+        // History cannot start with model
+        if (contents.length === 0 && role === 'model') continue;
+
+        // If consecutive same role, keep the latest text to ensure strict alternation
         if (contents.length > 0 && contents[contents.length - 1].role === role) {
-          contents[contents.length - 1].parts[0].text += `\n\n${msg.text}`;
+          contents[contents.length - 1].parts[0].text = msg.text;
         } else {
           contents.push({ role, parts: [{ text: msg.text }] });
         }
       }
 
+      // If the last message in history was user, replace it with current prompt; otherwise append
       if (contents.length > 0 && contents[contents.length - 1].role === 'user') {
-        contents[contents.length - 1].parts[0].text += `\n\n${ceoPrompt}`;
+        contents[contents.length - 1].parts[0].text = ceoPrompt;
       } else {
         contents.push({ role: 'user', parts: [{ text: ceoPrompt }] });
       }
