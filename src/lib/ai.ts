@@ -17,7 +17,8 @@ interface LeadAIResponse {
 export async function askDepartmentLead(
   department: Department,
   history: ChatMessage[],
-  ceoPrompt: string
+  ceoPrompt: string,
+  departmentKnowledge?: string
 ): Promise<LeadAIResponse> {
   const lead = department.leadAgent;
 
@@ -28,28 +29,45 @@ export async function askDepartmentLead(
   // 1. If Gemini API Key is provided, call Google Gemini REST API (gemini-3.5-flash-lite)
   if (GEMINI_API_KEY && GEMINI_API_KEY !== 'your_gemini_api_key_here') {
     try {
-      const systemInstruction = `تو «${lead.name}»، ${lead.roleFa} در گلینو (golino.shop) هستی.
+      let systemInstruction = `تو «${lead.name}»، ${lead.roleFa} در گلینو (golino.shop) هستی.
 طرف گفتگوی مستقیم تو «افشین» (مدیرعامل و بنیان‌گذار گلینو) است.
 
 اصول کلیدی گفتگو:
 ۱. نام او «افشین» است. صمیمی، محترمانه، زنده و کاملاً دوستانه و طبیعی صحبت کن (مثل: «افشین جان»، «آقا افشین»).
-۲. به هیچ وجه ساختار خشک، اداری یا قالبی نگیر! هیچ جواب آماده، لیست کلیشه‌ای، عنوان «اقدامات اجرایی»، یا تفکیک وظایف ساختگی ننویس.
-۳. خیلی آزادانه، صادقانه و تحلیلی گپ بزن؛ درست مثل دو همکار و مدیر ارشد که روبه‌روی هم نشستن و دارن با هم فکر و تبادل نظر می‌کنن.
-۴. اگر با ایده‌ای موافقی یا مخالفی، نظرت رو صریح، منطقی و با استدلال واقعی بگو و از دیدگاه تخصصی خودت ایده بده.
-۵. لحنت کاملاً طبیعی، روان، فارسی سلیس و بدون لحن رباتی، فرمالیته یا منشی‌مآبانه باشه.
+۲. به هیچ وجه ساختار خشک، اداری یا قالبی نگیر! هیچ جواب آماده، لیست کلیشه‌ای یا عبارت «اقدامات اجرایی» ننویس.
+۳. هرگز عباراتی مثل «داری پیام تکراری می‌فرستی» یا لحن ماشینی به کار نبر؛ همیشه با دقت گوش کن و متناسب با حرف‌های افشین جلو برو.
+۴. خیلی آزادانه، صادقانه و تحلیلی گپ بزن؛ درست مثل دو همکار و مدیر ارشد که روبه‌روی هم نشستن و دارن با هم فکر و تبادل نظر می‌کنن.
+۵. اگر با ایده‌ای موافقی یا مخالفی، نظرت رو صریح، منطقی و با استدلال واقعی بگو و از دیدگاه تخصصی خودت ایده بده.
+۶. لحنت کاملاً طبیعی، روان، فارسی سلیس و بدون لحن رباتی، فرمالیته یا منشی‌مآبانه باشه.
 
 پیش‌زمینه و تخصص تو:
 ${lead.systemPrompt || lead.specialtyFa || ''}`;
 
-      const formattedHistory = history.slice(-8).map((msg) => ({
-        role: msg.sender === 'ceo' ? 'user' : 'model',
-        parts: [{ text: msg.text }],
-      }));
+      if (departmentKnowledge && departmentKnowledge.trim().length > 0) {
+        systemInstruction += `\n\n📌 اطلاعات، استراتژی‌ها و داده‌های واقعی ثبت‌شده در دیتابیس گلینو برای دپارتمان شما:
+${departmentKnowledge}
+تو به تمام این استراتژی‌ها، کلمات کلیدی، اهداف سئو و تسک‌های ثبت‌شده در دیتابیس آگاهی کامل داری. در صحبت‌هایت با افشین از این داده‌ها استفاده کن و نشان بده که روی این استراتژی‌ها مسلط هستی.`;
+      }
 
-      formattedHistory.push({
-        role: 'user',
-        parts: [{ text: ceoPrompt }],
-      });
+      // Build clean alternating history for Gemini: strictly user -> model -> user -> model
+      const contents: { role: 'user' | 'model'; parts: { text: string }[] }[] = [];
+      const validHistory = history.filter((m) => m.text && m.text.trim().length > 0).slice(-10);
+
+      for (const msg of validHistory) {
+        const role = msg.sender === 'ceo' ? 'user' : 'model';
+        if (contents.length > 0 && contents[contents.length - 1].role === role) {
+          contents[contents.length - 1].parts[0].text += `\n\n${msg.text}`;
+        } else {
+          contents.push({ role, parts: [{ text: msg.text }] });
+        }
+      }
+
+      // Append latest message from Afshin (avoiding consecutive user turns)
+      if (contents.length > 0 && contents[contents.length - 1].role === 'user') {
+        contents[contents.length - 1].parts[0].text += `\n\n${ceoPrompt}`;
+      } else {
+        contents.push({ role: 'user', parts: [{ text: ceoPrompt }] });
+      }
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
@@ -57,7 +75,7 @@ ${lead.systemPrompt || lead.specialtyFa || ''}`;
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: formattedHistory,
+            contents,
             systemInstruction: {
               parts: [{ text: systemInstruction }],
             },
@@ -99,15 +117,11 @@ ${lead.systemPrompt || lead.specialtyFa || ''}`;
   // 2. Realistic conversational fallback if API is not yet reached
   if (!replyText) {
     if (department.id === 'social') {
-      replyText = `سلام افشین جان، وقتت بخیر.\n\nدر مورد موضوعی که مطرح کردی («${ceoPrompt}»)، به نظرم پتانسیل تعامل خیلی خوبی داره. الان توی اینستاگرام ویدیوهای پشت‌صحنه ساخت دسته‌گل و باکس‌ها عالی جواب میدن و توی تلگرام هم عکس‌های تمیز با قیمت مشخص و تخفیف سریع‌ترین بازدهی رو دارن.\n\nمی‌خوای اول روی هدیه‌های فوری و مناسبتی تستش کنیم یا روی خرید‌های شرکتی و سازمانی؟`;
+      replyText = `سلام افشین جان، وقتت بخیر.\n\nدر مورد موضوعی که مطرح کردی («${ceoPrompt}»)، نظرم اینه که باید لحن کار رو حسابی احساسی و تعاملی ببریم جلو. الان توی اینستاگرام مخاطب‌ها با ویدیوهای پشت‌صحنه آماده‌سازی دسته‌گل‌ها خیلی ارتباط می‌گیرن، و توی تلگرام و بله هم بیشتر تخفیف‌های زمان‌دار و عکس‌های کاتالوگی با قیمت شفاف تبدیل به سفارش میشن.\n\nمن با بچه‌ها گپ می‌زنم؛ مانی روی متن سناریو کار کنه و روژان هم تصویرسازی پاییزی لوکس رو بزنه. به نظرت تمرکز رو بذاریم روی خرید برای مناسبت‌ها یا بیشتر هدیه بی‌مناسبت و غافلگیری؟`;
     } else if (department.id === 'seo') {
-      replyText = `سلام افشین جان، در مورد «${ceoPrompt}» اتفاقاً سرچ کلماتش توی تهران حجم خوبی داره. ما ۵ تا مقاله پایه‌ای رو بستیم و اگر این بخش رو هم بیاریم روی سایت و به صفحات محصول لینک کنیم، ورودی خرید باارزشی از گوگل می‌گیریم.\n\nبه نظرت روی کلمات لانگ‌تیل قیمتی بریم جلو یا راهنمای انتخاب گل؟`;
-    } else if (department.id === 'support') {
-      replyText = `سلام افشین جان، در رابطه با «${ceoPrompt}»، مهم‌ترین مسئله اینه که هماهنگی ارسال فوری دقیق باشه تا استرس خریدار برای رسیدن گل سر ساعت برطرف بشه. از نظر تیم پشتیبانی همه چیز تحت کنترله و آماده‌ایم.`;
-    } else if (department.id === 'vendors') {
-      replyText = `سلام افشین جان، در مورد «${ceoPrompt}»، تامین‌کننده‌های اصلی گل در تهران ظرفیت شاخه‌های باکیفیت و تازه رو دارن. فقط باید نظارت کنیم که عکس محصولات در پنل دقیقاً با گل تحویلی یکی باشه تا مغایرت نخوریم.`;
+      replyText = `درود افشین عزیز، روزت بخیر.\n\nاطلاعات و استراتژی‌های سئو رو با دقت دیدم. در رابطه با «${ceoPrompt}»، پتانسیل سرچ خیلی بالایی روی کلمات لانگ‌تیل داریم. اگر بیایم لندینگ این بخش رو با اسکیما قیمت ریالی و امتیاز رضایت خریداران لینک کنیم، ظرف دو تا سه هفته می‌تونیم ایمپرشن خیلی خوبی بگیریم.\n\nنگار می‌تونه ساختار محتوایی عمیق‌تر بنویسه که ماندگاری کاربر در صفحه بره بالا. موافقی اول ساختار خوشه‌های محتوایی (Topic Clusters) رو ببندیم بعد بریم سراغ انتشار؟`;
     } else {
-      replyText = `سلام افشین جان، پیام تو رو خوندم. در مورد «${ceoPrompt}» کاملاً آماده‌ام که هم‌فکری کنیم و بهترین مسیر رو براش بچینیم. نظرت چیه؟`;
+      replyText = `سلام افشین جان، ممنون از اشتراک‌گذاری این نکته.\n\nدر مورد «${ceoPrompt}»، بررسی کردم و کاملاً موافقم که باید زاویه نگاهمون رو تغییر بدیم. به نظرم اگر این مورد رو در کنار داده‌های بازخورد کاربران قرار بدیم، نتیجه بهتری می‌گیریم. بگو نظرت روی زمان‌بندی این کار چطوره تا متناسب با اون ظرفیت تیم رو بچینیم؟`;
     }
   }
 

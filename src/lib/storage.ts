@@ -387,3 +387,65 @@ export async function saveBoardroomSession(session: BoardroomSession) {
   sessions.unshift(session);
   writeJsonFile('boardroom.json', sessions);
 }
+export async function getDepartmentKnowledge(deptId: string): Promise<string> {
+  const parts: string[] = [];
+
+  if (isDbConnected()) {
+    try {
+      // 1. Fetch Strategies
+      const strategies = await prisma.strategy.findMany({
+        where: { departmentId: deptId },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (strategies.length > 0) {
+        parts.push('📋 استراتژی‌ها و اهداف ثبت‌شده در دیتابیس گلینو:');
+        for (const s of strategies) {
+          parts.push(`- [افق زمانی: ${s.horizon}] عنوان: ${s.titleFa} | توضیحات: ${s.descriptionFa} (وضعیت: ${s.status})`);
+        }
+      }
+
+      // 2. Fetch Tasks
+      const tasks = await prisma.task.findMany({
+        where: { departmentId: deptId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      });
+      if (tasks.length > 0) {
+        parts.push('\n📝 تسک‌ها و برنامه‌های اخیر ثبت‌شده:');
+        for (const t of tasks) {
+          parts.push(`- ${t.titleFa} [مسئول: ${t.assignedAgentName} | وضعیت: ${t.status}] ${t.notesFa ? `نکات: ${t.notesFa}` : ''}`);
+        }
+      }
+
+      // 3. Fetch Reports
+      const reports = await prisma.executiveReport.findMany({
+        where: { departmentId: deptId },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+      });
+      if (reports.length > 0) {
+        parts.push('\n📊 گزارش‌های عملکرد دوره‌ای ثبت‌شده:');
+        for (const r of reports) {
+          parts.push(`- گزارش: ${r.titleFa} (${r.periodFa}): ${r.summaryFa}`);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching department knowledge from DB:', err);
+    }
+  }
+
+  // Also check tasks in fallback JSON if DB empty
+  if (parts.length === 0) {
+    const fallbackTasks = readJsonFile<TaskItem[]>('tasks.json', INITIAL_TASKS).filter(
+      (t) => t.departmentId === deptId
+    );
+    if (fallbackTasks.length > 0) {
+      parts.push('📝 تسک‌های ثبت‌شده در سامانه:');
+      for (const t of fallbackTasks) {
+        parts.push(`- ${t.titleFa} (وضعیت: ${t.status})`);
+      }
+    }
+  }
+
+  return parts.join('\n');
+}

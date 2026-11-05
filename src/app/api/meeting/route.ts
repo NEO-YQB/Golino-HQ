@@ -5,6 +5,7 @@ import {
   getChatHistory,
   addChatMessage,
   saveTask,
+  getDepartmentKnowledge,
 } from '@/lib/storage';
 import { askDepartmentLead } from '@/lib/ai';
 import { ChatMessage, TaskItem } from '@/types';
@@ -29,7 +30,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Department not found' }, { status: 404 });
     }
 
-    // 1. Save Afshin's Message
+    // 1. Fetch previous history BEFORE adding this new prompt (prevents duplicate user messages!)
+    const previousHistory = await getChatHistory(deptId);
+
+    // 2. Fetch all real data, strategies, and tasks entered into the database for this department
+    const deptKnowledge = await getDepartmentKnowledge(deptId);
+
+    // 3. Query Lead Agent with clean history and real database knowledge
+    const { replyText, actionsTaken, newTask } = await askDepartmentLead(
+      department,
+      previousHistory,
+      text,
+      deptKnowledge
+    );
+
+    // 4. Save Afshin's message
     const ceoMsg: ChatMessage = {
       id: `ceo-${Date.now()}`,
       departmentId: deptId,
@@ -40,11 +55,7 @@ export async function POST(req: Request) {
     };
     await addChatMessage(deptId, ceoMsg);
 
-    // 2. Query Lead Agent (with natural personality & analytical depth)
-    const history = await getChatHistory(deptId);
-    const { replyText, actionsTaken, newTask } = await askDepartmentLead(department, history, text);
-
-    // 3. If a concrete task was agreed upon, save it
+    // 5. If a concrete task was agreed upon, save it
     let createdTaskInfo: ChatMessage['createdTask'] = undefined;
     if (newTask) {
       const taskItem: TaskItem = {
@@ -76,7 +87,7 @@ export async function POST(req: Request) {
       };
     }
 
-    // 4. Save Lead Response
+    // 6. Save Lead Response
     const leadMsg: ChatMessage = {
       id: `lead-${Date.now()}`,
       departmentId: deptId,
