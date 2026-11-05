@@ -4,8 +4,7 @@ import {
   saveDepartments,
   getChatHistory,
   addChatMessage,
-  getTasks,
-  saveTasks,
+  saveTask,
 } from '@/lib/storage';
 import { askDepartmentLead } from '@/lib/ai';
 import { ChatMessage, TaskItem } from '@/types';
@@ -13,7 +12,7 @@ import { ChatMessage, TaskItem } from '@/types';
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const deptId = searchParams.get('deptId') || 'social';
-  const history = getChatHistory(deptId);
+  const history = await getChatHistory(deptId);
   return NextResponse.json(history);
 }
 
@@ -24,7 +23,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
-    const departments = getDepartments();
+    const departments = await getDepartments();
     const department = departments.find((d) => d.id === deptId);
     if (!department) {
       return NextResponse.json({ error: 'Department not found' }, { status: 404 });
@@ -39,10 +38,10 @@ export async function POST(req: Request) {
       text,
       timestamp: 'همین الان',
     };
-    addChatMessage(deptId, ceoMsg);
+    await addChatMessage(deptId, ceoMsg);
 
     // 2. Query Lead Agent
-    const history = getChatHistory(deptId);
+    const history = await getChatHistory(deptId);
     const { replyText, actionsTaken, newTask } = await askDepartmentLead(department, history, text);
 
     // 3. If a task was formulated, save it to the Task Queue!
@@ -64,13 +63,11 @@ export async function POST(req: Request) {
         targetChannels: newTask.targetChannels || ['تلگرام', 'بله', 'اینستاگرام'],
       };
 
-      const tasks = getTasks();
-      tasks.unshift(taskItem);
-      saveTasks(tasks);
+      await saveTask(taskItem);
 
       // Increment active tasks count
       department.activeTasksCount += 1;
-      saveDepartments(departments);
+      await saveDepartments(departments);
 
       createdTaskInfo = {
         title: taskItem.titleFa,
@@ -90,7 +87,7 @@ export async function POST(req: Request) {
       actionsTaken,
       createdTask: createdTaskInfo,
     };
-    addChatMessage(deptId, leadMsg);
+    await addChatMessage(deptId, leadMsg);
 
     return NextResponse.json({
       ceoMessage: ceoMsg,

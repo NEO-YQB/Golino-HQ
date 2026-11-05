@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getBoardroomSessions, saveBoardroomSession, getDepartments, getTasks, saveTasks } from '@/lib/storage';
+import {
+  getBoardroomSessions,
+  saveBoardroomSession,
+  getDepartments,
+  saveTask,
+} from '@/lib/storage';
 import { runBoardroomSimulation } from '@/lib/ai';
 import { BoardroomSession, TaskItem } from '@/types';
 
 export async function GET() {
-  const sessions = getBoardroomSessions();
+  const sessions = await getBoardroomSessions();
   return NextResponse.json(sessions);
 }
 
@@ -15,7 +20,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
     }
 
-    const allDepartments = getDepartments();
+    const allDepartments = await getDepartments();
     const selectedDepartments = allDepartments.filter((d) => departmentIds.includes(d.id));
 
     // Run AI Boardroom simulation
@@ -30,10 +35,9 @@ export async function POST(req: Request) {
       createdAt: 'امروز',
     };
 
-    saveBoardroomSession(newSession);
+    await saveBoardroomSession(newSession);
 
     // Also auto-create corresponding tasks in the global task queue!
-    const existingTasks = getTasks();
     for (const item of actionItems) {
       const task: TaskItem = {
         id: `task-br-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -47,9 +51,8 @@ export async function POST(req: Request) {
         dueDateFa: 'ظرف ۴۸ ساعت',
         notesFa: `ایجاد شده از طریق جلسه گروهی با موضوع: ${topicFa}`,
       };
-      existingTasks.unshift(task);
+      await saveTask(task);
     }
-    saveTasks(existingTasks);
 
     return NextResponse.json(newSession);
   } catch (err) {

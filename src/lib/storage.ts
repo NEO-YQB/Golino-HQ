@@ -15,6 +15,7 @@ import {
   INITIAL_ESCALATIONS,
   INITIAL_CHAT_HISTORY,
 } from './data';
+import { prisma, isDbConnected } from './prisma';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 
@@ -23,7 +24,7 @@ function ensureDataDir() {
     try {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     } catch {
-      // Ignore if cannot create
+      // Ignore
     }
   }
 }
@@ -52,44 +53,234 @@ function writeJsonFile<T>(filename: string, data: T) {
   }
 }
 
+// -------------------------------------------------------------
 // Departments
-export function getDepartments(): Department[] {
+// -------------------------------------------------------------
+export async function getDepartments(): Promise<Department[]> {
+  if (isDbConnected()) {
+    try {
+      const depts = await prisma.department.findMany({
+        include: { members: true },
+      });
+      if (depts.length > 0) {
+        return depts.map((d) => {
+          const lead = d.members.find((m) => m.isLead) || d.members[0];
+          const regulars = d.members.filter((m) => !m.isLead);
+          return {
+            id: d.id,
+            name: d.name,
+            nameFa: d.nameFa,
+            descriptionFa: d.descriptionFa,
+            icon: d.icon,
+            color: d.color,
+            status: d.status as any,
+            activeTasksCount: d.activeTasksCount,
+            errorCount: d.errorCount,
+            leadAgent: {
+              id: lead?.id || 'lead',
+              name: lead?.name || 'مدیر دپارتمان',
+              roleFa: lead?.roleFa || 'مدیر',
+              departmentId: d.id,
+              isLead: true,
+              avatar: lead?.avatar || '👔',
+              model: lead?.model || 'gemini-3.5-flash-lite',
+              status: (lead?.status as any) || 'online',
+              specialtyFa: lead?.specialtyFa || '',
+              systemPrompt: lead?.systemPrompt || '',
+            },
+            members: regulars.map((m) => ({
+              id: m.id,
+              name: m.name,
+              roleFa: m.roleFa,
+              departmentId: d.id,
+              isLead: false,
+              avatar: m.avatar,
+              model: m.model,
+              status: m.status as any,
+              specialtyFa: m.specialtyFa,
+              assignedChannelsFa: m.assignedChannelsFa || undefined,
+            })),
+          };
+        });
+      }
+    } catch (err) {
+      console.error('Database getDepartments error:', err);
+    }
+  }
   return readJsonFile<Department[]>('departments.json', INITIAL_DEPARTMENTS);
 }
 
-export function saveDepartments(departments: Department[]) {
+export async function saveDepartments(departments: Department[]) {
   writeJsonFile('departments.json', departments);
 }
 
+// -------------------------------------------------------------
 // Tasks
-export function getTasks(): TaskItem[] {
+// -------------------------------------------------------------
+export async function getTasks(): Promise<TaskItem[]> {
+  if (isDbConnected()) {
+    try {
+      const dbTasks = await prisma.task.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
+      return dbTasks.map((t) => ({
+        id: t.id,
+        titleFa: t.titleFa,
+        departmentId: t.departmentId,
+        departmentNameFa: t.departmentNameFa,
+        assignedAgentName: t.assignedAgentName,
+        status: t.status as any,
+        priority: t.priority as any,
+        dueDateFa: t.dueDateFa,
+        notesFa: t.notesFa || undefined,
+        contentFa: t.contentFa || undefined,
+        imageUrl: t.imageUrl || undefined,
+        targetChannels: (t.targetChannels as string[]) || undefined,
+        createdAt: t.createdAt.toLocaleDateString('fa-IR'),
+      }));
+    } catch (err) {
+      console.error('Database getTasks error:', err);
+    }
+  }
   return readJsonFile<TaskItem[]>('tasks.json', INITIAL_TASKS);
 }
 
-export function saveTasks(tasks: TaskItem[]) {
+export async function saveTask(task: TaskItem) {
+  if (isDbConnected()) {
+    try {
+      await prisma.task.upsert({
+        where: { id: task.id },
+        update: {
+          status: task.status,
+          priority: task.priority,
+          dueDateFa: task.dueDateFa,
+          notesFa: task.notesFa,
+          contentFa: task.contentFa,
+          imageUrl: task.imageUrl,
+          targetChannels: task.targetChannels,
+        },
+        create: {
+          id: task.id,
+          titleFa: task.titleFa,
+          departmentId: task.departmentId,
+          departmentNameFa: task.departmentNameFa,
+          assignedAgentName: task.assignedAgentName,
+          status: task.status,
+          priority: task.priority,
+          dueDateFa: task.dueDateFa,
+          notesFa: task.notesFa,
+          contentFa: task.contentFa,
+          imageUrl: task.imageUrl,
+          targetChannels: task.targetChannels,
+        },
+      });
+      return;
+    } catch (err) {
+      console.error('Database saveTask error:', err);
+    }
+  }
+
+  const tasks = readJsonFile<TaskItem[]>('tasks.json', INITIAL_TASKS);
+  const index = tasks.findIndex((t) => t.id === task.id);
+  if (index >= 0) {
+    tasks[index] = task;
+  } else {
+    tasks.unshift(task);
+  }
   writeJsonFile('tasks.json', tasks);
 }
 
+export async function saveTasks(tasks: TaskItem[]) {
+  writeJsonFile('tasks.json', tasks);
+}
+
+// -------------------------------------------------------------
 // Reports
-export function getReports(): ExecutiveReport[] {
+// -------------------------------------------------------------
+export async function getReports(): Promise<ExecutiveReport[]> {
+  if (isDbConnected()) {
+    try {
+      const dbReports = await prisma.executiveReport.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
+      return dbReports.map((r) => ({
+        id: r.id,
+        departmentId: r.departmentId,
+        departmentNameFa: r.departmentNameFa,
+        periodFa: r.periodFa,
+        titleFa: r.titleFa,
+        summaryFa: r.summaryFa,
+        accomplishments: (r.accomplishments as string[]) || [],
+        blockers: (r.blockers as string[]) || [],
+        metrics: (r.metrics as any[]) || [],
+        createdAt: r.createdAt.toLocaleDateString('fa-IR'),
+      }));
+    } catch (err) {
+      console.error('Database getReports error:', err);
+    }
+  }
   return readJsonFile<ExecutiveReport[]>('reports.json', INITIAL_REPORTS);
 }
 
-export function saveReports(reports: ExecutiveReport[]) {
+export async function saveReports(reports: ExecutiveReport[]) {
   writeJsonFile('reports.json', reports);
 }
 
+// -------------------------------------------------------------
 // Escalations
-export function getEscalations(): EscalationMessage[] {
+// -------------------------------------------------------------
+export async function getEscalations(): Promise<EscalationMessage[]> {
+  if (isDbConnected()) {
+    try {
+      const alerts = await prisma.escalationAlert.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
+      return alerts.map((a) => ({
+        id: a.id,
+        departmentId: a.departmentId,
+        departmentNameFa: a.departmentId === 'social' ? 'شبکه‌های اجتماعی' : 'سئو',
+        senderAgentName: a.senderAgentName,
+        senderRoleFa: a.senderRoleFa,
+        messageFa: a.messageFa,
+        urgency: a.urgency as any,
+        status: a.status as any,
+        timestamp: a.createdAt.toLocaleTimeString('fa-IR'),
+      }));
+    } catch (err) {
+      console.error('Database getEscalations error:', err);
+    }
+  }
   return readJsonFile<EscalationMessage[]>('escalations.json', INITIAL_ESCALATIONS);
 }
 
-export function saveEscalations(escalations: EscalationMessage[]) {
+export async function saveEscalations(escalations: EscalationMessage[]) {
   writeJsonFile('escalations.json', escalations);
 }
 
+// -------------------------------------------------------------
 // 1-on-1 Chat History
-export function getChatHistory(deptId: string): ChatMessage[] {
+// -------------------------------------------------------------
+export async function getChatHistory(deptId: string): Promise<ChatMessage[]> {
+  if (isDbConnected()) {
+    try {
+      const msgs = await prisma.meetingMessage.findMany({
+        where: { departmentId: deptId },
+        orderBy: { createdAt: 'asc' },
+      });
+      return msgs.map((m) => ({
+        id: m.id,
+        departmentId: m.departmentId,
+        sender: m.sender as any,
+        senderName: m.senderName,
+        text: m.text,
+        timestamp: m.createdAt.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+        actionsTaken: (m.actionsTaken as string[]) || undefined,
+      }));
+    } catch (err) {
+      console.error('Database getChatHistory error:', err);
+    }
+  }
+
   const allChats = readJsonFile<Record<string, ChatMessage[]>>(
     'chats.json',
     INITIAL_CHAT_HISTORY
@@ -97,7 +288,25 @@ export function getChatHistory(deptId: string): ChatMessage[] {
   return allChats[deptId] || [];
 }
 
-export function addChatMessage(deptId: string, message: ChatMessage) {
+export async function addChatMessage(deptId: string, message: ChatMessage) {
+  if (isDbConnected()) {
+    try {
+      await prisma.meetingMessage.create({
+        data: {
+          id: message.id,
+          departmentId: deptId,
+          sender: message.sender,
+          senderName: message.senderName,
+          text: message.text,
+          actionsTaken: message.actionsTaken || undefined,
+        },
+      });
+      return;
+    } catch (err) {
+      console.error('Database addChatMessage error:', err);
+    }
+  }
+
   const allChats = readJsonFile<Record<string, ChatMessage[]>>(
     'chats.json',
     INITIAL_CHAT_HISTORY
@@ -109,18 +318,49 @@ export function addChatMessage(deptId: string, message: ChatMessage) {
   writeJsonFile('chats.json', allChats);
 }
 
-// Boardrooms
-export function getBoardroomSessions(): BoardroomSession[] {
+// -------------------------------------------------------------
+// Boardroom Sessions
+// -------------------------------------------------------------
+export async function getBoardroomSessions(): Promise<BoardroomSession[]> {
+  if (isDbConnected()) {
+    try {
+      const records = await prisma.boardroomSessionRecord.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
+      return records.map((r) => ({
+        id: r.id,
+        topicFa: r.topicFa,
+        activeDepartmentIds: r.activeDepartmentIds as string[],
+        messages: r.dialogue as any,
+        actionItems: r.actionItems as any,
+        createdAt: r.createdAt.toLocaleDateString('fa-IR'),
+      }));
+    } catch (err) {
+      console.error('Database getBoardroomSessions error:', err);
+    }
+  }
   return readJsonFile<BoardroomSession[]>('boardroom.json', []);
 }
 
-export function saveBoardroomSession(session: BoardroomSession) {
-  const sessions = getBoardroomSessions();
-  const index = sessions.findIndex((s) => s.id === session.id);
-  if (index >= 0) {
-    sessions[index] = session;
-  } else {
-    sessions.unshift(session);
+export async function saveBoardroomSession(session: BoardroomSession) {
+  if (isDbConnected()) {
+    try {
+      await prisma.boardroomSessionRecord.create({
+        data: {
+          id: session.id,
+          topicFa: session.topicFa,
+          activeDepartmentIds: session.activeDepartmentIds,
+          dialogue: session.messages as any,
+          actionItems: session.actionItems as any,
+        },
+      });
+      return;
+    } catch (err) {
+      console.error('Database saveBoardroomSession error:', err);
+    }
   }
+
+  const sessions = await getBoardroomSessions();
+  sessions.unshift(session);
   writeJsonFile('boardroom.json', sessions);
 }

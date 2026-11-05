@@ -1,0 +1,255 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------------------------
+// 1. سازمان و دپارتمان‌ها (Departments & Agents)
+// -------------------------------------------------------------
+model Department {
+  id               String   @id
+  name             String
+  nameFa           String
+  descriptionFa    String   @db.Text
+  icon             String
+  color            String   @default("#D3A74B")
+  status           String   @default("active") // active | busy | idle | warning
+  activeTasksCount Int      @default(0)
+  errorCount       Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  members          Agent[]
+  tasks            Task[]
+  strategies       Strategy[]
+  reports          ExecutiveReport[]
+  meetings         MeetingMessage[]
+  calendarItems    ContentCalendarItem[]
+
+  @@map("departments")
+}
+
+model Agent {
+  id                 String   @id
+  name               String
+  roleFa             String
+  departmentId       String
+  isLead             Boolean  @default(false)
+  avatar             String
+  model              String   @default("gemini-3.5-flash-lite")
+  status             String   @default("online") // online | working | idle
+  specialtyFa        String   @db.Text
+  assignedChannelsFa String?
+  systemPrompt       String?  @db.Text
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  department         Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@map("agents")
+}
+
+// -------------------------------------------------------------
+// 2. مدیریت تسک‌ها و کنترل کیفی (Tasks & Pipeline)
+// -------------------------------------------------------------
+model Task {
+  id                 String   @id @default(cuid())
+  titleFa            String
+  departmentId       String
+  departmentNameFa   String
+  assignedAgentName  String
+  status             String   @default("pending") // pending | in_progress | awaiting_approval | completed | failed
+  priority           String   @default("medium") // low | medium | high | urgent
+  dueDateFa          String
+  notesFa            String?  @db.Text
+  contentFa          String?  @db.Text
+  imageUrl           String?  @db.Text
+  targetChannels     Json?    // e.g. ["تلگرام", "بله", "اینستاگرام"]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  department         Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@map("tasks")
+}
+
+// -------------------------------------------------------------
+// 3. استراتژی‌های سازمانی و سئو (Long/Mid/Short-term Strategy)
+// -------------------------------------------------------------
+model Strategy {
+  id            String   @id @default(cuid())
+  departmentId  String
+  titleFa       String
+  horizon       String   @default("mid_term") // short_term (۱ ماهه) | mid_term (۳-۶ ماهه) | long_term (۱ ساله)
+  descriptionFa String   @db.Text
+  kpis          Json?    // شاخص‌های کلیدی مثل تارگت رتبه کلمه کلیدی یا ورودی اورگانیک
+  status        String   @default("active") // draft | active | achieved | archived
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  department    Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@map("strategies")
+}
+
+// -------------------------------------------------------------
+// 4. تقویم محتوایی و انتشار زمان‌بندی‌شده (Content Calendar)
+// -------------------------------------------------------------
+model ContentCalendarItem {
+  id            String    @id @default(cuid())
+  departmentId  String    @default("social")
+  scheduledAt   DateTime
+  channel       String    // telegram | bale | instagram | rubika | x | linkedin
+  titleFa       String
+  captionFa     String    @db.Text
+  mediaUrl      String?   @db.Text
+  status        String    @default("scheduled") // draft | scheduled | published | failed
+  publishedAt   DateTime?
+  postUrl       String?
+  failureReason String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  department    Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@map("content_calendar")
+}
+
+// -------------------------------------------------------------
+// 5. سیستم ارتباط با مشتریان (Customer Care CRM)
+// -------------------------------------------------------------
+model CrmCustomer {
+  id               String   @id @default(cuid())
+  phone            String   @unique
+  fullName         String?
+  customerTier     String   @default("regular") // lead | regular | vip | critical
+  notesFa          String?  @db.Text
+  totalOrders      Int      @default(0)
+  totalSpendToman  BigInt   @default(0)
+  preferredChannel String?  // telegram | bale | instagram | phone
+  sentiment        String   @default("positive") // positive | neutral | upset
+  tags             Json?    // ["عاشق_رز_هلندی", "ارسال_فوری", "تولد_همسر"]
+  lastContactAt    DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  interactions     CrmInteraction[]
+
+  @@map("crm_customers")
+}
+
+model CrmInteraction {
+  id          String      @id @default(cuid())
+  customerId  String
+  channel     String      // telegram | bale | instagram | support_ticket
+  summaryFa   String      @db.Text
+  sentiment   String      @default("neutral")
+  handledBy   String      @default("هومان مهر (پشتیبانی)")
+  createdAt   DateTime    @default(now())
+
+  customer    CrmCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("crm_interactions")
+}
+
+// -------------------------------------------------------------
+// 6. ارزیابی و CRM فروشندگان و گل‌فروشی‌ها (Vendor Relations)
+// -------------------------------------------------------------
+model VendorPartner {
+  id              String   @id @default(cuid())
+  storeName       String
+  city            String   @default("تهران")
+  address         String?  @db.Text
+  contactPerson   String?
+  phone           String?
+  qualityScore    Float    @default(5.0) // 1.0 to 5.0
+  auditStatus     String   @default("verified") // verified | warning | suspended
+  specialtyFlower String?  // e.g. "انواع رز هلندی و استند افتتاحیه"
+  notesFa         String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  audits          VendorAuditLog[]
+
+  @@map("vendor_partners")
+}
+
+model VendorAuditLog {
+  id          String        @id @default(cuid())
+  vendorId    String
+  auditorName String        @default("سامان پارسا (امور فروشندگان)")
+  result      String        // approved | rejected | needs_improvement
+  notesFa     String        @db.Text
+  photoUrl    String?       @db.Text
+  createdAt   DateTime      @default(now())
+
+  vendor      VendorPartner @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@map("vendor_audit_logs")
+}
+
+// -------------------------------------------------------------
+// 7. اتاق جلسات و پیام‌ها (Meeting Messages & Boardroom)
+// -------------------------------------------------------------
+model MeetingMessage {
+  id           String      @id @default(cuid())
+  departmentId String
+  sender       String      // ceo | lead | system
+  senderName   String
+  text         String      @db.Text
+  actionsTaken Json?       // array of strings
+  createdTaskId String?
+  createdAt    DateTime    @default(now())
+
+  department   Department  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@map("meeting_messages")
+}
+
+model BoardroomSessionRecord {
+  id                  String   @id @default(cuid())
+  topicFa             String
+  activeDepartmentIds Json     // string[]
+  dialogue            Json     // array of messages
+  actionItems         Json     // array of tasks created
+  createdAt           DateTime @default(now())
+
+  @@map("boardroom_sessions")
+}
+
+// -------------------------------------------------------------
+// 8. گزارش‌های رسمی و هشدارهای اضطراری (Reports & Escalations)
+// -------------------------------------------------------------
+model ExecutiveReport {
+  id               String   @id @default(cuid())
+  departmentId     String
+  departmentNameFa String
+  periodFa         String
+  titleFa          String
+  summaryFa        String   @db.Text
+  accomplishments  Json
+  blockers         Json
+  metrics          Json
+  createdAt        DateTime @default(now())
+
+  department       Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@map("executive_reports")
+}
+
+model EscalationAlert {
+  id               String   @id @default(cuid())
+  departmentId     String
+  senderAgentName  String
+  senderRoleFa     String
+  messageFa        String   @db.Text
+  urgency          String   @default("normal") // normal | urgent | critical
+  status           String   @default("unread") // unread | read | resolved
+  createdAt        DateTime @default(now())
+
+  @@map("escalation_alerts")
+}
