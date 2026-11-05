@@ -1,12 +1,200 @@
 import { PrismaClient } from '@prisma/client';
-import { INITIAL_DEPARTMENTS } from '../src/lib/data';
 
 const prisma = new PrismaClient();
+
+const SEED_DEPARTMENTS = [
+  {
+    id: 'social',
+    name: 'Social Media & Brand Marketing',
+    nameFa: 'دپارتمان شبکه‌های اجتماعی و برند',
+    descriptionFa: 'مدیریت تقویم انتشار، تعامل، سناریونویسی، تولید تصویر و ادمینی اختصاصی ۶ پلتفرم (تلگرام، بله، اینستا، روبیکا، ایکس و لینکدین).',
+    icon: 'Share2',
+    color: '#EC4899',
+    status: 'active',
+    leadAgent: {
+      id: 'agent_social_lead',
+      name: 'سارا راد',
+      roleFa: 'مدیر ارشد دپارتمان سوشال مدیا',
+      avatar: '👩‍💼',
+      model: 'gemini-3.5-flash-lite',
+      status: 'online',
+      specialtyFa: 'استراتژی محتوا، نظارت بر ادمین‌های شبکه‌ها، هماهنگی تقویم مناسبت‌ها و گزارش‌دهی به مدیرعامل',
+      systemPrompt: 'تو سارا راد مدیر ارشد دپارتمان شبکه‌های اجتماعی گلینو هستی.',
+    },
+    members: [
+      {
+        id: 'agent_admin_tg_bale',
+        name: 'امیر پیام‌رسان',
+        roleFa: 'ادمین ارشد تلگرام و بله',
+        avatar: '📲',
+        model: 'gemini-3.5-flash-lite',
+        status: 'online',
+        specialtyFa: 'بارگذاری کاتالوگ گل‌ها، ارسال آلبوم، تخفیف‌ها و پاسخگویی به پیام‌ها و سفارشات در تلگرام و بله',
+        assignedChannelsFa: 'تلگرام (Telegram) • بله (Bale)',
+      },
+      {
+        id: 'agent_admin_insta_rubika',
+        name: 'پریا ویژوال',
+        roleFa: 'ادمین ارشد اینستاگرام و روبیکا',
+        avatar: '📸',
+        model: 'gemini-3.5-flash-lite',
+        status: 'online',
+        specialtyFa: 'انتشار استوری، سناریوی ریلز، پاسخ به دایرکت‌ها، کامنت‌ها و ادمینی کانال روبیکا',
+        assignedChannelsFa: 'اینستاگرام (Instagram) • روبیکا (Rubika)',
+      },
+      {
+        id: 'agent_admin_x_linkedin',
+        name: 'کیوان برند',
+        roleFa: 'ادمین ارشد لینکدین و ایکس',
+        avatar: '💼',
+        model: 'gemini-3.5-flash-lite',
+        status: 'online',
+        specialtyFa: 'رشته‌توییت‌های ترند، تعامل شوخ‌طبعانه، ارتباط با شرکت‌ها برای هدیه سازمانی و جذب فروشندگان گل',
+        assignedChannelsFa: 'ایکس / توییتر (X) • لینکدین (LinkedIn)',
+      },
+      {
+        id: 'agent_social_copywriter',
+        name: 'مانی قلمی',
+        roleFa: 'کپی‌رایتر ارشد و سناریونویس',
+        avatar: '📝',
+        model: 'gemini-3.5-flash-lite',
+        status: 'online',
+        specialtyFa: 'نگارش کپشن‌های مسحورکننده، قلاب‌های میلیونی و اسکریپت‌های احساسی برای خرید گل',
+      },
+      {
+        id: 'agent_social_art',
+        name: 'روژان دیزاین',
+        roleFa: 'طراح ارشد تصویر و هوش مصنوعی',
+        avatar: '🎨',
+        model: 'Imagen 3 / Canvas',
+        status: 'online',
+        specialtyFa: 'تولید تصاویر لوکس دسته‌گل با Imagen 3، قالب استوری و ترکیب با لوگوی گلینو',
+      },
+      {
+        id: 'agent_social_publisher',
+        name: 'موتور دیسپچر و انتشار خودکار',
+        roleFa: 'پایپ‌لاین زمان‌بندی و ارسال API',
+        avatar: '🤖',
+        model: 'Scheduler Engine',
+        status: 'online',
+        specialtyFa: 'ارسال خودکار محتوا به وب‌هوک و API کانال‌ها بلافاصله پس از تایید نهایی مدیرعامل',
+      },
+    ],
+  },
+  {
+    id: 'seo',
+    name: 'SEO & Organic Growth',
+    nameFa: 'دپارتمان سئو و رشد اورگانیک',
+    descriptionFa: 'مدیریت رتبه‌بندی کلمات کلیدی، استراتژی بلاگ، بهینه‌سازی On-Page و ممیزی فنی فروشگاه گلینو.',
+    icon: 'Search',
+    color: '#3B82F6',
+    status: 'active',
+    leadAgent: {
+      id: 'agent_seo_lead',
+      name: 'آرشام سئو',
+      roleFa: 'مدیر دپارتمان سئو',
+      avatar: '👨‍💼',
+      model: 'gemini-3.5-flash-lite',
+      status: 'online',
+      specialtyFa: 'استراتژی کلمات کلیدی، بازبینی نهایی ساختار محتوا، ممیزی فنی و لینک‌سازی',
+      systemPrompt: 'تو آرشام سئو مدیر دپارتمان سئو گلینو هستی.',
+    },
+    members: [
+      {
+        id: 'agent_seo_writer',
+        name: 'نگار پارسا',
+        roleFa: 'کارشناس ارشد نویسندگی محتوا',
+        avatar: '✍️',
+        model: 'gemini-3.5-flash-lite',
+        status: 'online',
+        specialtyFa: 'نگارش مقالات تخصصی نگهداری گل، خرید دسته‌گل لوکس و پاسخ به جستجوهای خریداران',
+      },
+      {
+        id: 'agent_seo_designer',
+        name: 'کامران ویژوال',
+        roleFa: 'طراح گرافیک و اینفوگرافیک سئو',
+        avatar: '🎨',
+        model: 'Imagen 3 / Canvas',
+        status: 'online',
+        specialtyFa: 'تولید کاور مقالات، اینفوگرافیک نگهداری گل و تصاویر بهینه‌شده با تگ Alt',
+      },
+      {
+        id: 'agent_seo_auditor',
+        name: 'کیان ممیز',
+        roleFa: 'ناظر فنی سئو و متادیتا',
+        avatar: '🔍',
+        model: 'gemini-3.5-flash-lite',
+        status: 'online',
+        specialtyFa: 'بررسی اسکیما مارک‌آپ (JSON-LD)، تایتل و دیسکریپشن‌ها و جلوگیری از کنبالیزیشن',
+      },
+    ],
+  },
+  {
+    id: 'support',
+    name: 'Customer Experience & Care',
+    nameFa: 'دپارتمان تجربه مشتری و پشتیبانی',
+    descriptionFa: 'پاسخگویی به خریداران، پیگیری سفارشات ارسال فوری گل و حل شکایات در کمترین زمان.',
+    icon: 'Headphones',
+    color: '#10B981',
+    status: 'idle',
+    leadAgent: {
+      id: 'agent_support_lead',
+      name: 'هومان مهر',
+      roleFa: 'مدیر دپارتمان پشتیبانی',
+      avatar: '👨‍💻',
+      model: 'gemini-3.5-flash-lite',
+      status: 'online',
+      specialtyFa: 'هماهنگی جلب رضایت مشتری، مدیریت تیکت‌های مرجوعی و نظرسنجی پس از تحویل',
+      systemPrompt: 'تو هومان مهر مدیر دپارتمان پشتیبانی گلینو هستی.',
+    },
+    members: [
+      {
+        id: 'agent_support_bot',
+        name: 'آوای گلینو',
+        roleFa: 'پشتیبان هوشمند سفارشات ۲۴/۷',
+        avatar: '💬',
+        model: 'gemini-3.5-flash-lite',
+        status: 'online',
+        specialtyFa: 'استعلام لحظه‌ای وضعیت لوکیشن پیک، تغییر آدرس تحویل و پاسخگویی به سوالات متداول',
+      },
+    ],
+  },
+  {
+    id: 'vendors',
+    name: 'Vendor Relations & Review',
+    nameFa: 'دپارتمان امور فروشندگان و کیفیت گل‌ها',
+    descriptionFa: 'ارزیابی کیفیت گل‌فروشی‌های عضو مارکت‌پلیس، تایید قیمت‌گذاری و استانداردسازی محصولات.',
+    icon: 'Store',
+    color: '#F59E0B',
+    status: 'idle',
+    leadAgent: {
+      id: 'agent_vendor_lead',
+      name: 'سامان پارسا',
+      roleFa: 'مدیر دپارتمان روابط فروشندگان',
+      avatar: '🤝',
+      model: 'gemini-3.5-flash-lite',
+      status: 'online',
+      specialtyFa: 'پایش امتیاز رضایت از هر گل‌فروشی، تسویه‌حساب‌ها و استانداردسازی عکس محصولات',
+      systemPrompt: 'تو سامان پارسا مدیر امور فروشندگان گلینو هستی.',
+    },
+    members: [
+      {
+        id: 'agent_vendor_qa',
+        name: 'بررسی‌کننده کیفیت',
+        roleFa: 'ناظر تایید محصول و عکس',
+        avatar: '🔎',
+        model: 'Vision Model',
+        status: 'online',
+        specialtyFa: 'تطبیق عکس ارسالی فروشنده با کیفیت واقعی و جلوگیری از قیمت‌گذاری نامتعارف',
+      },
+    ],
+  },
+];
 
 async function main() {
   console.log('🌱 Starting Golino HQ Database Seed...');
 
-  for (const dept of INITIAL_DEPARTMENTS) {
+  for (const dept of SEED_DEPARTMENTS) {
     console.log(`Seeding Department: ${dept.nameFa}...`);
 
     await prisma.department.upsert({
@@ -74,7 +262,7 @@ async function main() {
           model: member.model,
           status: member.status,
           specialtyFa: member.specialtyFa,
-          assignedChannelsFa: member.assignedChannelsFa,
+          assignedChannelsFa: (member as any).assignedChannelsFa || null,
         },
         create: {
           id: member.id,
@@ -86,7 +274,7 @@ async function main() {
           model: member.model,
           status: member.status,
           specialtyFa: member.specialtyFa,
-          assignedChannelsFa: member.assignedChannelsFa,
+          assignedChannelsFa: (member as any).assignedChannelsFa || null,
         },
       });
     }
