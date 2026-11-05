@@ -164,9 +164,9 @@ export default function MeetingRoomPage() {
             <div className="w-12 h-12 rounded-full bg-slate-800/60 mx-auto flex items-center justify-center text-xl">
               {lead.avatar}
             </div>
-            <h3 className="text-base font-bold text-white">جلسه کاری با {lead.name} آغاز شد</h3>
+            <h3 className="text-base font-bold text-white">اتاق گفتگوی مستقیم با {lead.name}</h3>
             <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-              شما در حال گفتگو با مدیر دپارتمان هستید. هر برنامه‌ای دارید بفرمایید تا ایشان وظایف را بین اعضای تیم تقسیم کرده و محتوا را آماده تایید شما کند.
+              اینجا فضای هم‌فکری و گفتگوی آزاد با {lead.name} است. درباره وضعیت، ایده‌ها و تصمیمات آزادانه گفتگو کنید.
             </p>
           </div>
         ) : (
@@ -244,7 +244,7 @@ export default function MeetingRoomPage() {
               <div className="w-2 h-2 rounded-full bg-gold-400 animate-bounce delay-100"></div>
               <div className="w-2 h-2 rounded-full bg-gold-400 animate-bounce delay-200"></div>
               <span className="text-xs text-slate-300 mr-2">
-                {lead.name} در حال تفکیک وظایف و هماهنگی با تیم...
+                {lead.name} در حال نوشتن پاسخ...
               </span>
             </div>
           </div>
@@ -255,36 +255,119 @@ export default function MeetingRoomPage() {
       {/* Quick Prompts Bar */}
       <div className="px-3 py-2 bg-[#0e1420]/70 border-t border-[#1f293d] flex items-center gap-1.5 overflow-x-auto no-scrollbar">
         <span className="text-[10px] text-slate-400 shrink-0 ml-1">پیشنهاد موضوع گفتگو:</span>
-        <button
-          onClick={() =>
-            handleQuickPrompt(
-              'سارا نظرت در مورد کمپین آخر هفته چیه؟ به نظرت روی چه دسته‌گل‌هایی تمرکز کنیم تا ورودی بهتری بگیریم؟'
-            )
-          }
-          className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
-        >
-          💡 هم‌فکری برای استراتژی کمپین آخر هفته
-        </button>
-        <button
-          onClick={() =>
-            handleQuickPrompt(
-              'امیر و پریا چطور با مشتری‌ها توی دایرکت و تلگرام تعامل می‌کنند؟ نرخ تبدیل استعلام‌ها به سفارش چطوره؟'
-            )
-          }
-          className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
-        >
-          💬 تحلیل وضعیت تعامل و پاسخگویی ادمین‌ها
-        </button>
-        <button
-          onClick={() =>
-            handleQuickPrompt(
-              'برای فروش گل‌های لوکس و هدیه سازمانی چه ایده‌ای داری که بتونیم با شرکت‌ها وارد مذاکره بشیم؟'
-            )
-          }
-          className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
-        >
-          💼 ایده برای هدیه سازمانی و جذب گل‌فروشان
-        </button>
+        {deptId === 'seo' ? (
+          <>
+            <button
+              onClick={() =>
+                handleQuickPrompt(
+                  'آرشام، وضعیت مقالات منتشر شده و رتبه‌بندی‌های سرچ در چه وضعیتیه؟ گام بعدیمون چی باشه؟'
+                )
+              }
+              className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
+            >
+              🔍 تحلیل رتبه‌بندی و گام بعدی سئو
+            </button>
+            <button
+              onClick={() =>
+                handleQuickPrompt(
+                  'برای کلاستر سالگرد ازدواج چه ایده‌ای داری؟ چطور می‌تونیم ترافیک مستقیم خریدار جذب کنیم؟'
+                )
+              }
+              className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
+            >
+              💍 استراتژی کلاستر سالگرد ازدواج
+            </button>
+            <button
+              onClick={() =>
+                handleQuickPrompt(
+                  'روی لندینگ‌های ارسال فوری گل و خرید در تهران چطور باید با رقبای بزرگ رقابت کنیم؟'
+                )
+              }
+              className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
+            >
+              🚀 استراتژی لندینگ‌های ارسال فوری
+            </button>
+          </>
+        ) : deptId === 'support' ? (
+          <>
+            <button
+              onClick={() =>
+                handleQuickPrompt(
+                  'هومان، وضعیت پاسخگویی و رضایت خریداران چطوره؟ تیکت باز یا تاخیر در تحویل داریم؟'
+                )
+              }
+              className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
+            >
+              🎧 بررسی وضعیت پشتیبانی و رضایت مشتری
+            </button>
+            <button
+              onClick={() =>
+                handleQuickPrompt(
+                  'بیشترین سوال یا دغدغه مشتری‌ها موقع سفارش گل چی بوده؟ چطور حلش کنیم؟'
+                )
+              }
+              className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
+            >
+              💡 رفع دغدغه‌های پرتکرار خریداران
+            </button>
+          </>
+        ) : deptId === 'vendors' ? (
+          <>
+            <button
+              onClick={() =>
+                handleQuickPrompt(
+                  'سامان، وضعیت گل‌فروشی‌های عضو و کیفیت گل‌های تحویلی چطوره؟ تخلف یا مغایرتی نداشتیم؟'
+                )
+              }
+              className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
+            >
+              🌸 ارزیابی کیفیت گل‌های تامین‌کنندگان
+            </button>
+            <button
+              onClick={() =>
+                handleQuickPrompt(
+                  'برای جذب و اضافه کردن گل‌فروشی‌های درجه‌یک در مناطق جدید تهران چه برنامه‌ای داری؟'
+                )
+              }
+              className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
+            >
+              🤝 توسعه شبکه گل‌فروشان جدید
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() =>
+                handleQuickPrompt(
+                  'سارا نظرت در مورد کمپین آخر هفته چیه؟ به نظرت روی چه دسته‌گل‌هایی تمرکز کنیم تا ورودی بهتری بگیریم؟'
+                )
+              }
+              className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
+            >
+              💡 هم‌فکری برای استراتژی کمپین آخر هفته
+            </button>
+            <button
+              onClick={() =>
+                handleQuickPrompt(
+                  'امیر و پریا چطور با مشتری‌ها توی دایرکت و تلگرام تعامل می‌کنند؟ نرخ تبدیل استعلام‌ها به سفارش چطوره؟'
+                )
+              }
+              className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
+            >
+              💬 تحلیل وضعیت تعامل و پاسخگویی ادمین‌ها
+            </button>
+            <button
+              onClick={() =>
+                handleQuickPrompt(
+                  'برای فروش گل‌های لوکس و هدیه سازمانی چه ایده‌ای داری که بتونیم با شرکت‌ها وارد مذاکره بشیم؟'
+                )
+              }
+              className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
+            >
+              💼 ایده برای هدیه سازمانی و جذب گل‌فروشان
+            </button>
+          </>
+        )}
       </div>
 
       {/* Input Form */}
