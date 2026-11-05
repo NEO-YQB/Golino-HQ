@@ -8,7 +8,7 @@ import {
   getDepartmentKnowledge,
 } from '@/lib/storage';
 import { askDepartmentLead } from '@/lib/ai';
-import { ChatMessage, TaskItem } from '@/types';
+import { ChatMessage } from '@/types';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -30,14 +30,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Department not found' }, { status: 404 });
     }
 
-    // 1. Fetch previous history BEFORE adding this new prompt (prevents duplicate user messages!)
+    // 1. Fetch previous history BEFORE adding this prompt
     const previousHistory = await getChatHistory(deptId);
 
-    // 2. Fetch all real data, strategies, and tasks entered into the database for this department
+    // 2. Fetch department background knowledge from DB
     const deptKnowledge = await getDepartmentKnowledge(deptId);
 
-    // 3. Query Lead Agent with clean history and real database knowledge
-    const { replyText, actionsTaken, newTask } = await askDepartmentLead(
+    // 3. Query Lead Agent - completely open, human, un-templated
+    const { replyText, newTask } = await askDepartmentLead(
       department,
       previousHistory,
       text,
@@ -55,36 +55,11 @@ export async function POST(req: Request) {
     };
     await addChatMessage(deptId, ceoMsg);
 
-    // 5. If a concrete task was agreed upon, save it
-    let createdTaskInfo: ChatMessage['createdTask'] = undefined;
+    // 5. If a task was explicitly requested by Afshin, save it
     if (newTask) {
-      const taskItem: TaskItem = {
-        id: `task-${Date.now()}`,
-        titleFa: newTask.titleFa,
-        departmentId: deptId,
-        departmentNameFa: department.nameFa,
-        assignedAgentName: newTask.assignedAgentName,
-        status: 'awaiting_approval',
-        priority: 'high',
-        createdAt: 'امروز',
-        dueDateFa: 'امروز / فردا',
-        notesFa: `به پیشنهاد ${department.leadAgent.name} در گفتگو با افشین`,
-        contentFa: newTask.contentFa,
-        imageUrl: newTask.imageUrl,
-        targetChannels: newTask.targetChannels || ['تلگرام', 'بله', 'اینستاگرام'],
-      };
-
-      await saveTask(taskItem);
-
-      // Increment active tasks count
+      await saveTask(newTask);
       department.activeTasksCount += 1;
       await saveDepartments(departments);
-
-      createdTaskInfo = {
-        title: taskItem.titleFa,
-        assignedTo: taskItem.assignedAgentName,
-        previewText: taskItem.contentFa?.slice(0, 100),
-      };
     }
 
     // 6. Save Lead Response
@@ -95,8 +70,6 @@ export async function POST(req: Request) {
       senderName: `${department.leadAgent.name} (${department.leadAgent.roleFa})`,
       text: replyText,
       timestamp: 'همین الان',
-      actionsTaken: actionsTaken.length > 0 ? actionsTaken : undefined,
-      createdTask: createdTaskInfo,
     };
     await addChatMessage(deptId, leadMsg);
 

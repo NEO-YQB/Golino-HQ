@@ -191,46 +191,6 @@ export default function MeetingRoomPage() {
                   }`}
                 >
                   {msg.text}
-
-                  {/* Actions Taken By Manager */}
-                  {!isCeo && msg.actionsTaken && msg.actionsTaken.length > 0 && (
-                    <div className="mt-3 pt-2.5 border-t border-slate-700/60 space-y-1.5">
-                      <span className="text-[11px] font-bold text-gold-400 flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-gold-400" />
-                        اقدامات اجرایی ثبت‌شده توسط مدیر:
-                      </span>
-                      <div className="space-y-1">
-                        {msg.actionsTaken.map((action, idx) => (
-                          <div
-                            key={idx}
-                            className="text-[11px] bg-slate-900/60 text-slate-200 px-2 py-1 rounded border border-slate-700/50 flex items-center gap-1.5"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
-                            <span>{action}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Created Task Notification in Chat */}
-                  {!isCeo && msg.createdTask && (
-                    <div className="mt-3 p-2.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex items-center gap-2">
-                        <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <div>
-                          <p className="text-xs font-bold text-white">تسک جدید به کارتابل شما اضافه شد</p>
-                          <p className="text-[10px] text-emerald-300">{msg.createdTask.title}</p>
-                        </div>
-                      </div>
-                      <Link
-                        href="/tasks"
-                        className="text-[11px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1 rounded-lg transition-colors mr-auto"
-                      >
-                        مشاهده و تایید در کارتابل
-                      </Link>
-                    </div>
-                  )}
                 </div>
               </div>
             );
