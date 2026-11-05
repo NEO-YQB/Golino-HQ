@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="128" fill="#0B0F17"/>
+  <circle cx="256" cy="256" r="180" stroke="#D3A74B" stroke-width="16" stroke-dasharray="8 8"/>
+  <path d="M256 140C220 140 180 180 180 230C180 290 256 370 256 370C256 370 332 290 332 230C332 180 292 140 256 140Z" fill="url(#gold_grad)"/>
+  <circle cx="256" cy="230" r="32" fill="#0B0F17"/>
+  <defs>
+    <linearGradient id="gold_grad" x1="180" y1="140" x2="332" y2="370" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5EDD4"/>
+      <stop offset="0.5" stop-color="#D3A74B"/>
+      <stop offset="1" stop-color="#825123"/>
+    </linearGradient>
+  </defs>
+</svg>
