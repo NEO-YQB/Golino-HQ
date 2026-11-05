@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
-import { getDepartments, getChatHistory, addChatMessage } from '@/lib/storage';
+import {
+  getDepartments,
+  saveDepartments,
+  getChatHistory,
+  addChatMessage,
+  getTasks,
+  saveTasks,
+} from '@/lib/storage';
 import { askDepartmentLead } from '@/lib/ai';
-import { ChatMessage } from '@/types';
+import { ChatMessage, TaskItem } from '@/types';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const deptId = searchParams.get('deptId') || 'seo';
+  const deptId = searchParams.get('deptId') || 'social';
   const history = getChatHistory(deptId);
   return NextResponse.json(history);
 }
@@ -36,9 +43,43 @@ export async function POST(req: Request) {
 
     // 2. Query Lead Agent
     const history = getChatHistory(deptId);
-    const { replyText, actionsTaken } = await askDepartmentLead(department, history, text);
+    const { replyText, actionsTaken, newTask } = await askDepartmentLead(department, history, text);
 
-    // 3. Save Lead Response
+    // 3. If a task was formulated, save it to the Task Queue!
+    let createdTaskInfo: ChatMessage['createdTask'] = undefined;
+    if (newTask) {
+      const taskItem: TaskItem = {
+        id: `task-${Date.now()}`,
+        titleFa: newTask.titleFa,
+        departmentId: deptId,
+        departmentNameFa: department.nameFa,
+        assignedAgentName: newTask.assignedAgentName,
+        status: 'awaiting_approval',
+        priority: 'high',
+        createdAt: 'امروز',
+        dueDateFa: 'امروز / فردا',
+        notesFa: `ایجاد شده در جلسه کاری مدیرعامل با ${department.leadAgent.name}`,
+        contentFa: newTask.contentFa,
+        imageUrl: newTask.imageUrl,
+        targetChannels: newTask.targetChannels || ['تلگرام', 'بله', 'اینستاگرام'],
+      };
+
+      const tasks = getTasks();
+      tasks.unshift(taskItem);
+      saveTasks(tasks);
+
+      // Increment active tasks count
+      department.activeTasksCount += 1;
+      saveDepartments(departments);
+
+      createdTaskInfo = {
+        title: taskItem.titleFa,
+        assignedTo: taskItem.assignedAgentName,
+        previewText: taskItem.contentFa?.slice(0, 100),
+      };
+    }
+
+    // 4. Save Lead Response
     const leadMsg: ChatMessage = {
       id: `lead-${Date.now()}`,
       departmentId: deptId,
@@ -47,12 +88,14 @@ export async function POST(req: Request) {
       text: replyText,
       timestamp: 'همین الان',
       actionsTaken,
+      createdTask: createdTaskInfo,
     };
     addChatMessage(deptId, leadMsg);
 
     return NextResponse.json({
       ceoMessage: ceoMsg,
       leadMessage: leadMsg,
+      taskCreated: !!newTask,
     });
   } catch (err) {
     console.error('Meeting API error:', err);

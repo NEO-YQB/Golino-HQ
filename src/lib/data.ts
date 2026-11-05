@@ -2,6 +2,114 @@ import { Department, TaskItem, ExecutiveReport, EscalationMessage, ChatMessage }
 
 export const INITIAL_DEPARTMENTS: Department[] = [
   {
+    id: 'social',
+    name: 'Social Media & Brand Marketing',
+    nameFa: 'دپارتمان شبکه‌های اجتماعی و برند',
+    descriptionFa: 'مدیریت تقویم انتشار، تعامل، سناریونویسی، تولید تصویر و ادمینی اختصاصی ۶ پلتفرم (تلگرام، بله، اینستا، روبیکا، ایکس و لینکدین).',
+    icon: 'Share2',
+    color: '#EC4899',
+    status: 'active',
+    activeTasksCount: 0,
+    errorCount: 0,
+    leadAgent: {
+      id: 'agent_social_lead',
+      name: 'سارا راد',
+      roleFa: 'مدیر ارشد دپارتمان سوشال مدیا',
+      departmentId: 'social',
+      isLead: true,
+      avatar: '👩‍💼',
+      model: 'gemini-3.5-flash-lite',
+      status: 'online',
+      specialtyFa: 'استراتژی محتوا، نظارت بر ادمین‌های شبکه‌ها، هماهنگی تقویم مناسبت‌ها و گزارش‌دهی به مدیرعامل',
+      systemPrompt: `تو «سارا راد»، مدیر ارشد دپارتمان شبکه‌های اجتماعی مارکت‌پلیس گلینو (golino.shop) هستی.
+تو در یک جلسه کاری مستقیم و خصوصی با «مدیرعامل گلینو» گفتگو می‌کنی.
+تیم کامل تو متشکل از کارشناسان زیر است و تو به عنوان مدیر باید وظایف را فوراً به آنها ارجاع دهی:
+۱. «امیر پیام‌رسان»: ادمین ارشد تلگرام و بله (مسئول بارگذاری، کاتالوگ محصولات، پاسخ به پیام‌های دایرکت و ثبت سفارشات در تلگرام و بله).
+۲. «پریا ویژوال»: ادمین ارشد اینستاگرام و روبیکا (مسئول ریلز، استوری، پاسخگویی به کامنت‌ها و دایرکت‌های اینستاگرام و کانال روبیکا).
+۳. «کیوان برند»: ادمین ارشد ایکس (توییتر) و لینکدین (مسئول ترندها، توییت‌های تعاملی، مقالات B2B هدیه سازمانی و جذب گل‌فروشی‌ها).
+۴. «مانی قلمی»: کپی‌رایتر ارشد (نگارش قلاب‌ها، کپشن‌های جذاب، متن‌های حسی و ترغیب به خرید گل).
+۵. «روژان دیزاین»: طراح ارشد گرافیک و هوش مصنوعی تصویر (تولید عکس‌های لوکس با Imagen 3 و بنرهای گلینو).
+۶. «موتور هوشمند انتشار»: ارسال خودکار از طریق API به محض تایید مدیرعامل.
+
+قوانین گفتگو با مدیرعامل:
+- بسیار مؤدب، حرفه‌ای، نتیجه‌گرا، با انرژی و به زبان فارسی روان صحبت کن.
+- ایده‌های نو برای مناسبت‌ها، دسته‌گل‌های روز، هدیه سازمانی و تخفیف‌ها بده.
+- هر زمان مدیرعامل دستوری داد یا برنامه‌ای خواست، شفاف بگو کدام تسک را به کدام ادمین یا طراح ارجاع دادی.
+- در انتهای پیامت، بخشی با عنوان «اقدامات اجرایی:» بگذار و کارهای مشخص ارجاع‌شده را با خط فاصله (-) لیست کن.`,
+    },
+    members: [
+      {
+        id: 'agent_admin_tg_bale',
+        name: 'امیر پیام‌رسان',
+        roleFa: 'ادمین ارشد تلگرام و بله',
+        departmentId: 'social',
+        isLead: false,
+        avatar: '📲',
+        model: 'gemini-3.5-flash-lite',
+        status: 'online',
+        specialtyFa: 'بارگذاری کاتالوگ گل‌ها، ارسال آلبوم، تخفیف‌ها و پاسخگویی به پیام‌ها و سفارشات در تلگرام و بله',
+        assignedChannelsFa: 'تلگرام (Telegram) • بله (Bale)',
+      },
+      {
+        id: 'agent_admin_insta_rubika',
+        name: 'پریا ویژوال',
+        roleFa: 'ادمین ارشد اینستاگرام و روبیکا',
+        departmentId: 'social',
+        isLead: false,
+        avatar: '📸',
+        model: 'gemini-3.5-flash-lite',
+        status: 'online',
+        specialtyFa: 'انتشار استوری، سناریوی ریلز، پاسخ به دایرکت‌ها، کامنت‌ها و ادمینی کانال روبیکا',
+        assignedChannelsFa: 'اینستاگرام (Instagram) • روبیکا (Rubika)',
+      },
+      {
+        id: 'agent_admin_x_linkedin',
+        name: 'کیوان برند',
+        roleFa: 'ادمین ارشد لینکدین و ایکس',
+        departmentId: 'social',
+        isLead: false,
+        avatar: '💼',
+        model: 'gemini-3.5-flash-lite',
+        status: 'online',
+        specialtyFa: 'رشته‌توییت‌های ترند، تعامل شوخ‌طبعانه، ارتباط با شرکت‌ها برای هدیه سازمانی و جذب فروشندگان گل',
+        assignedChannelsFa: 'ایکس / توییتر (X) • لینکدین (LinkedIn)',
+      },
+      {
+        id: 'agent_social_copywriter',
+        name: 'مانی قلمی',
+        roleFa: 'کپی‌رایتر ارشد و سناریونویس',
+        departmentId: 'social',
+        isLead: false,
+        avatar: '📝',
+        model: 'gemini-3.5-flash-lite',
+        status: 'online',
+        specialtyFa: 'نگارش کپشن‌های مسحورکننده، قلاب‌های میلیونی و اسکریپت‌های احساسی برای خرید گل',
+      },
+      {
+        id: 'agent_social_art',
+        name: 'روژان دیزاین',
+        roleFa: 'طراح ارشد تصویر و هوش مصنوعی',
+        departmentId: 'social',
+        isLead: false,
+        avatar: '🎨',
+        model: 'Imagen 3 / Canvas',
+        status: 'online',
+        specialtyFa: 'تولید تصاویر لوکس دسته‌گل با Imagen 3، قالب استوری و ترکیب با لوگوی گلینو',
+      },
+      {
+        id: 'agent_social_publisher',
+        name: 'موتور دیسپچر و انتشار خودکار',
+        roleFa: 'پایپ‌لاین زمان‌بندی و ارسال API',
+        departmentId: 'social',
+        isLead: false,
+        avatar: '🤖',
+        model: 'Scheduler Engine',
+        status: 'online',
+        specialtyFa: 'ارسال خودکار محتوا به وب‌هوک و API کانال‌ها بلافاصله پس از تایید نهایی مدیرعامل',
+      },
+    ],
+  },
+  {
     id: 'seo',
     name: 'SEO & Organic Growth',
     nameFa: 'دپارتمان سئو و رشد اورگانیک',
@@ -9,8 +117,8 @@ export const INITIAL_DEPARTMENTS: Department[] = [
     icon: 'Search',
     color: '#3B82F6',
     status: 'active',
-    activeTasksCount: 4,
-    errorCount: 1,
+    activeTasksCount: 0,
+    errorCount: 0,
     leadAgent: {
       id: 'agent_seo_lead',
       name: 'آرشام سئو',
@@ -18,10 +126,13 @@ export const INITIAL_DEPARTMENTS: Department[] = [
       departmentId: 'seo',
       isLead: true,
       avatar: '👨‍💼',
-      model: 'Gemini 1.5 Pro',
+      model: 'gemini-3.5-flash-lite',
       status: 'online',
       specialtyFa: 'استراتژی کلمات کلیدی، بازبینی نهایی ساختار محتوا، ممیزی فنی و لینک‌سازی',
-      systemPrompt: 'تو مدیر دپارتمان سئو در پلتفرم گلینو (مارکت‌پلیس آنلاین گل و گیاه) هستی. تو با مدیرعامل در حال گفتگو هستی. لحن تو کاملاً حرفه‌ای، محترمانه، نتیجه‌گرا، فارسی روان و دقیق است. هر زمان مدیرعامل ایرادی یا فیدبکی به کارهای تیم تو داد، بلافاصله عذرخواهی کن، دلیل مشکل را توضیح بده، وظیفه اصلاح را صریحاً به اعضای تیمت (نویسنده یا طراح یا ناظر فنی) ارجاع بده و گزارش اصلاح شده را تحویل بده.',
+      systemPrompt: `تو «آرشام سئو»، مدیر دپارتمان سئوی مارکت‌پلیس آنلاین گلینو هستی.
+تو در جلسه اختصاصی با مدیرعامل صحبت می‌کنی.
+اعضای تیمت: «نگار پارسا» (نویسنده ارشد)، «کامران ویژوال» (طراح اینفوگرافیک)، و «کیان ممیز» (ناظر فنی اسکیما و متادیتا).
+هر زمان مدیرعامل فیدبک داد یا دستوری صادر کرد، با احترام و سرعت بالا وظایف اصلاحی را به اعضای تیمت ارجاع بده و در بخش اقدامات اجرایی گزارش کن.`,
     },
     members: [
       {
@@ -31,9 +142,9 @@ export const INITIAL_DEPARTMENTS: Department[] = [
         departmentId: 'seo',
         isLead: false,
         avatar: '✍️',
-        model: 'Gemini 1.5 Flash',
-        status: 'working',
-        specialtyFa: 'نگارش مقالات تخصصی نگهداری گل، خرید دسته‌گل لوکس و پاسخ به جستجوهای کاربران',
+        model: 'gemini-3.5-flash-lite',
+        status: 'online',
+        specialtyFa: 'نگارش مقالات تخصصی نگهداری گل، خرید دسته‌گل لوکس و پاسخ به جستجوهای خریداران',
       },
       {
         id: 'agent_seo_designer',
@@ -43,7 +154,7 @@ export const INITIAL_DEPARTMENTS: Department[] = [
         isLead: false,
         avatar: '🎨',
         model: 'Imagen 3 / Canvas',
-        status: 'working',
+        status: 'online',
         specialtyFa: 'تولید کاور مقالات، اینفوگرافیک نگهداری گل و تصاویر بهینه‌شده با تگ Alt',
       },
       {
@@ -53,67 +164,9 @@ export const INITIAL_DEPARTMENTS: Department[] = [
         departmentId: 'seo',
         isLead: false,
         avatar: '🔍',
-        model: 'Gemini 1.5 Flash',
-        status: 'idle',
-        specialtyFa: 'بررسی اسکیما مارک‌آپ (JSON-LD)، تایتل و دیسکریپشن‌ها و جلوگیری از کنبالیزیشن',
-      },
-    ],
-  },
-  {
-    id: 'social',
-    name: 'Social Media & Content',
-    nameFa: 'دپارتمان شبکه‌های اجتماعی و برند',
-    descriptionFa: 'مدیریت تقویم انتشار، تعامل، سناریونویسی و انتشار خودکار در ۶ پلتفرم (تلگرام، بله، اینستا، ایکس، لینکدین، روبیکا).',
-    icon: 'Share2',
-    color: '#EC4899',
-    status: 'active',
-    activeTasksCount: 6,
-    errorCount: 0,
-    leadAgent: {
-      id: 'agent_social_lead',
-      name: 'سارا راد',
-      roleFa: 'مدیر دپارتمان سوشال مدیا',
-      departmentId: 'social',
-      isLead: true,
-      avatar: '👩‍💼',
-      model: 'Gemini 1.5 Pro',
-      status: 'online',
-      specialtyFa: 'مدیریت تقویم محتوایی مناسبتی، هماهنگی کمپین‌های چندکاناله و تحلیل بازخوردها',
-      systemPrompt: 'تو مدیر دپارتمان شبکه‌های اجتماعی پلتفرم گلینو هستی. تیم تو مسئول تولید و انتشار محتوا در اینستاگرام، تلگرام، بله، روبیکا، لینکدین و توییتر است. با مدیرعامل با انرژی، خلاق، ساختاریافته و فارسی روان صحبت کن. برنامه‌ها، ایده‌های خلاقانه برای هدیه دادن گل، و وضعیت صف انتشار خودکار را شفاف گزارش کن.',
-    },
-    members: [
-      {
-        id: 'agent_social_copywriter',
-        name: 'مانی قلمی',
-        roleFa: 'کپی‌رایتر شبکه‌های اجتماعی',
-        departmentId: 'social',
-        isLead: false,
-        avatar: '📝',
-        model: 'Gemini 1.5 Flash',
-        status: 'working',
-        specialtyFa: 'نگارش کپشن‌های جذاب، قلاب‌های ریلز، متن‌های احساسی و رشته‌توییت‌های ترند',
-      },
-      {
-        id: 'agent_social_art',
-        name: 'روژان دیزاین',
-        roleFa: 'طراح قالب و استوری‌های لوکس',
-        departmentId: 'social',
-        isLead: false,
-        avatar: '✨',
-        model: 'Image Agent',
-        status: 'working',
-        specialtyFa: 'طراحی استوری‌های شکیل روزانه، تمپلیت‌های تخفیف و عکس‌های برند گلینو',
-      },
-      {
-        id: 'agent_social_publisher',
-        name: 'ربات انتشار خودکار',
-        roleFa: 'موتور اتصال API و ربات‌های ناشر',
-        departmentId: 'social',
-        isLead: false,
-        avatar: '🤖',
-        model: 'Scheduler Engine',
+        model: 'gemini-3.5-flash-lite',
         status: 'online',
-        specialtyFa: 'ارسال خودکار به کانال تلگرام، پیام‌رسان بله، اینستاگرام و زمان‌بندی دقیق',
+        specialtyFa: 'بررسی اسکیما مارک‌آپ (JSON-LD)، تایتل و دیسکریپشن‌ها و جلوگیری از کنبالیزیشن',
       },
     ],
   },
@@ -125,7 +178,7 @@ export const INITIAL_DEPARTMENTS: Department[] = [
     icon: 'Headphones',
     color: '#10B981',
     status: 'idle',
-    activeTasksCount: 2,
+    activeTasksCount: 0,
     errorCount: 0,
     leadAgent: {
       id: 'agent_support_lead',
@@ -134,7 +187,7 @@ export const INITIAL_DEPARTMENTS: Department[] = [
       departmentId: 'support',
       isLead: true,
       avatar: '👨‍💻',
-      model: 'Gemini 1.5 Flash',
+      model: 'gemini-3.5-flash-lite',
       status: 'online',
       specialtyFa: 'هماهنگی جلب رضایت مشتری، مدیریت تیکت‌های مرجوعی و نظرسنجی پس از تحویل',
       systemPrompt: 'تو مدیر دپارتمان پشتیبانی و رضایت مشتری گلینو هستی. اولویت اول تو رساندن به موقع گل‌های تازه و حل استرس خریدار هنگام غافلگیری عزیزشان است.',
@@ -147,7 +200,7 @@ export const INITIAL_DEPARTMENTS: Department[] = [
         departmentId: 'support',
         isLead: false,
         avatar: '💬',
-        model: 'Gemini 1.5 Flash',
+        model: 'gemini-3.5-flash-lite',
         status: 'online',
         specialtyFa: 'استعلام لحظه‌ای وضعیت لوکیشن پیک، تغییر آدرس تحویل و پاسخگویی به سوالات متداول',
       },
@@ -157,11 +210,11 @@ export const INITIAL_DEPARTMENTS: Department[] = [
     id: 'vendors',
     name: 'Vendor Relations & Review',
     nameFa: 'دپارتمان امور فروشندگان و کیفیت گل‌ها',
-    descriptionFa: 'ارزیابی کیفیت گل‌فروشی‌های عضو مارکت‌پلیس، تایید قیمت‌گذاری و آموزش کار با پنل فروشنده.',
+    descriptionFa: 'ارزیابی کیفیت گل‌فروشی‌های عضو مارکت‌پلیس، تایید قیمت‌گذاری و استانداردسازی محصولات.',
     icon: 'Store',
     color: '#F59E0B',
     status: 'idle',
-    activeTasksCount: 1,
+    activeTasksCount: 0,
     errorCount: 0,
     leadAgent: {
       id: 'agent_vendor_lead',
@@ -170,7 +223,7 @@ export const INITIAL_DEPARTMENTS: Department[] = [
       departmentId: 'vendors',
       isLead: true,
       avatar: '🤝',
-      model: 'Gemini 1.5 Flash',
+      model: 'gemini-3.5-flash-lite',
       status: 'online',
       specialtyFa: 'پایش امتیاز رضایت از هر گل‌فروشی، تسویه‌حساب‌ها و استانداردسازی عکس محصولات',
       systemPrompt: 'تو مدیر امور فروشندگان گلینو هستی. تمرکزت روی حفظ استاندارد عکاسی محصولات و پایبندی گل‌فروشان به تازه بودن گل‌هاست.',
@@ -184,204 +237,21 @@ export const INITIAL_DEPARTMENTS: Department[] = [
         isLead: false,
         avatar: '🔎',
         model: 'Vision Model',
-        status: 'idle',
+        status: 'online',
         specialtyFa: 'تطبیق عکس ارسالی فروشنده با کیفیت واقعی و جلوگیری از قیمت‌گذاری نامتعارف',
       },
     ],
   },
 ];
 
-export const INITIAL_TASKS: TaskItem[] = [
-  {
-    id: 'task-101',
-    titleFa: 'اصلاح عنوان و ساختار H2 مقاله «راهنمای انتخاب گل رز جاودان لوکس»',
-    departmentId: 'seo',
-    departmentNameFa: 'سئو و رشد اورگانیک',
-    assignedAgentName: 'نگار پارسا (نویسنده)',
-    status: 'in_progress',
-    priority: 'high',
-    createdAt: '۱۴۰۵/۰۸/۱۵ - ۱۰:۳۰',
-    dueDateFa: 'امروز - ۱۶:۰۰',
-    notesFa: 'پیرو فیدبک مدیرعامل، بررسی نهایی ساختار محتوا و چگالی کلمات کلیدی مجدداً باید کنترل شود.',
-  },
-  {
-    id: 'task-102',
-    titleFa: 'استخراج کلمات کلیدی LSI برای دسته‌بندی جدید «سبد گل افتتاحیه و نمایشگاهی»',
-    departmentId: 'seo',
-    departmentNameFa: 'سئو و رشد اورگانیک',
-    assignedAgentName: 'آرشام سئو (مدیر)',
-    status: 'completed',
-    priority: 'medium',
-    createdAt: '۱۴۰۵/۰۸/۱۴ - ۰۹:۰۰',
-    dueDateFa: '۱۴۰۵/۰۸/۱۴',
-    notesFa: 'لیست ۳۵ عبارت پرجستجو به همراه اینتنت خریداران استخراج و در شیت ثبت شد.',
-  },
-  {
-    id: 'task-103',
-    titleFa: 'آماده‌سازی پک محتوای تصویری و کپشن تخفیف پنج‌شنبه برای کانال تلگرام و بله',
-    departmentId: 'social',
-    departmentNameFa: 'شبکه‌های اجتماعی',
-    assignedAgentName: 'مانی قلمی (کپی‌رایتر)',
-    status: 'awaiting_approval',
-    priority: 'urgent',
-    createdAt: '۱۴۰۵/۰۸/۱۵ - ۱۱:۰۰',
-    dueDateFa: 'امروز - ۱۵:۰۰',
-    notesFa: 'کد تخفیف GolinoWeekend در متن لحاظ شد و قالب تصویر لوکس آماده تایید مدیرعامل است.',
-  },
-  {
-    id: 'task-104',
-    titleFa: 'زمان‌بندی سناریوی ریلز اینستاگرام: «۳ ترفند تازه نگه داشتن گل ارکیده»',
-    departmentId: 'social',
-    departmentNameFa: 'شبکه‌های اجتماعی',
-    assignedAgentName: 'روژان دیزاین (طراح)',
-    status: 'in_progress',
-    priority: 'medium',
-    createdAt: '۱۴۰۵/۰۸/۱۵ - ۱۱:۴۵',
-    dueDateFa: 'فردا - ۱۲:۰۰',
-    notesFa: 'اسکریپت و کات‌های ویدیویی هماهنگ شد، در مرحله رندر نهایی.',
-  },
-  {
-    id: 'task-105',
-    titleFa: 'ممیزی اسکیما پروداکت (Product Schema) در صفحات جزئیات گل‌های گلینو',
-    departmentId: 'seo',
-    departmentNameFa: 'سئو و رشد اورگانیک',
-    assignedAgentName: 'کیان ممیز (ناظر فنی)',
-    status: 'pending',
-    priority: 'high',
-    createdAt: '۱۴۰۵/۰۸/۱۵ - ۱۲:۰۰',
-    dueDateFa: 'فردا - ۱۸:۰۰',
-    notesFa: 'بررسی تطابق قیمت ریالی و وضعیت موجودی با الزامات ریچ ریزالت گوگل.',
-  },
-];
+// Clean slate - No fake / mock tasks
+export const INITIAL_TASKS: TaskItem[] = [];
 
-export const INITIAL_REPORTS: ExecutiveReport[] = [
-  {
-    id: 'rep-201',
-    departmentId: 'seo',
-    departmentNameFa: 'دپارتمان سئو و رشد اورگانیک',
-    periodFa: 'گزارش عملکرد هفته جاری (آبان ۱۴۰۵)',
-    titleFa: 'روند صعودی ایمپرشن‌ها و اصلاح جریان کنترل کیفی محتوا',
-    summaryFa: 'طی ۷ روز اخیر، با بازنگری مقالات لندینگ پیج و رفع خطاهای اسکیما در پنل گلینو، ایمپرشن‌های اورگانیک ۲۲٪ افزایش یافت. پس از تذکر مدیرعامل درباره بازبینی نهایی محتوا، چک‌لیست سه‌مرحله‌ای اجباری برای نویسندگان پیاده‌سازی شد.',
-    accomplishments: [
-      'کسب رتبه ۳ در عبارت پرجستجوی «خرید آنلاین دسته گل رز تهران»',
-      'انتشار ۴ مقاله راهنمای جامع با رعایت کامل استانداردهای معنایی گوگل',
-      'استقرار سیستم ممیزی پیش از انتشار روی سرور برای جلوگیری از محتوای تکراری',
-    ],
-    blockers: [
-      'نیاز به بازنویسی توضیحات متا در ۳۰ محصول ارسالی توسط گل‌فروشان تازه وارد',
-    ],
-    metrics: [
-      { label: 'کلیک‌های اورگانیک', value: '۱۴,۸۲۰', change: '+۱۸.۴٪' },
-      { label: 'رشد ایمپرشن', value: '۱۸۵,۳۰۰', change: '+۲۲.۱٪' },
-      { label: 'میانگین جایگاه', value: '۶.۲', change: '+۱.۴ رتبه' },
-    ],
-    createdAt: '۱۴۰۵/۰۸/۱۴',
-  },
-  {
-    id: 'rep-202',
-    departmentId: 'social',
-    departmentNameFa: 'دپارتمان شبکه‌های اجتماعی',
-    periodFa: 'گزارش عملکرد هفته جاری (آبان ۱۴۰۵)',
-    titleFa: 'افزایش نرخ تبدیل کانال تلگرام و پیام‌رسان بله',
-    summaryFa: 'با فعال‌سازی ربات ارسال خودکار آلبوم محصولات در تلگرام و بله، ترافیک ارجاعی به درگاه فروشگاه ۳۱٪ رشد داشته است. هماهنگی محتوا میان شبکه‌ها اکنون در کمتر از ۵ دقیقه انجام می‌شود.',
-    accomplishments: [
-      'انتشار ۱۲ پست زمان‌بندی‌شده بدون هیچ قطعی یا تاخیر در API',
-      'طراحی بسته بصری پاییزی برای معرفی گل‌های داوودی و ارکیده',
-      'پاسخگویی خودکار به ۴۵۰ استعلام قیمت اولیه در دایرکت',
-    ],
-    blockers: [
-      'محدودیت موقت در دریافت توکن جدید لایو اینستاگرام که با هماهنگی فیس‌بوک ادمین مرتفع شد',
-    ],
-    metrics: [
-      { label: 'ترافیک ورودی به سایت', value: '۶,۴۵۰ کلیک', change: '+۳۱.۵٪' },
-      { label: 'نرخ تعامل (Engagement)', value: '۸.۷٪', change: '+۲.۳٪' },
-      { label: 'سفارشات مستقیم ثبت شده', value: '۱۸۴ سفارش', change: '+۴۲.۰٪' },
-    ],
-    createdAt: '۱۴۰۵/۰۸/۱۵',
-  },
-];
+// Clean slate - No fake reports
+export const INITIAL_REPORTS: ExecutiveReport[] = [];
 
-export const INITIAL_ESCALATIONS: EscalationMessage[] = [
-  {
-    id: 'esc-301',
-    departmentId: 'seo',
-    departmentNameFa: 'سئو و رشد اورگانیک',
-    senderAgentName: 'آرشام سئو',
-    senderRoleFa: 'مدیر سئو',
-    messageFa: 'جناب مدیرعامل، بازبینی چک نهایی محتواها مطابق دستور شما در سیستم اعمال شد. مقاله رز جاودان اصلاح گردید و مجدداً جهت نظارت آماده است.',
-    urgency: 'normal',
-    status: 'unread',
-    timestamp: 'امروز - ۱۲:۳۰',
-  },
-  {
-    id: 'esc-302',
-    departmentId: 'social',
-    departmentNameFa: 'شبکه‌های اجتماعی',
-    senderAgentName: 'سارا راد',
-    senderRoleFa: 'مدیر سوشال مدیا',
-    messageFa: 'پک تخفیف آخر هفته گلینو آماده تایید نهایی شما در صف تسک‌ها قرار گرفته است. در صورت تایید تا ساعت ۱۵، ربات‌ها راس موعد در تلگرام و بله شلیک می‌کنند.',
-    urgency: 'urgent',
-    status: 'unread',
-    timestamp: 'امروز - ۱۱:۱۵',
-  },
-  {
-    id: 'esc-303',
-    departmentId: 'seo',
-    departmentNameFa: 'سئو و رشد اورگانیک',
-    senderAgentName: 'کیان ممیز',
-    senderRoleFa: 'ناظر فنی سئو',
-    messageFa: 'هشدار: دو صفحه محصول جدید تگ کانونیکال (Canonical) نداشتند که قبل از ایندکس گوگل موقتاً در وضعیت پیش‌نویس نگه داشته شدند تا اصلاح شوند.',
-    urgency: 'critical',
-    status: 'read',
-    timestamp: 'دیروز - ۱۸:۰۰',
-  },
-];
+// Clean slate - No fake escalations
+export const INITIAL_ESCALATIONS: EscalationMessage[] = [];
 
-export const INITIAL_CHAT_HISTORY: Record<string, ChatMessage[]> = {
-  seo: [
-    {
-      id: 'c1',
-      departmentId: 'seo',
-      sender: 'ceo',
-      senderName: 'مدیرعامل',
-      text: 'آرشام، در بررسی اخیر دیدم که یکی از مقالات وبلاگ چک نهایی نشده بود و هدینگ‌ها و تایتل‌ها ایراد داشتند. دقت بیشتری در انتشار داشته باشید.',
-      timestamp: 'امروز - ۱۰:۱۵',
-    },
-    {
-      id: 'c2',
-      departmentId: 'seo',
-      sender: 'lead',
-      senderName: 'آرشام سئو (مدیر سئو)',
-      text: 'سلام و احترام جناب مدیرعامل. عذرخواهی می‌کنم، حق کاملاً با شماست. متاسفانه کارشناس محتوا بدون پاس کردن مرحله Audit متن را وارد مرحله نهایی کرده بود. من بلافاصله مقاله را از وضعیت انتشار خارج کردم و به خانم نگار پارسا ارجاع دادم تا ساختار H2 و چگالی کلمات را اصلاح کند. همچنین یک مرحله اعتبارسنجی اجباری به پایپ‌لاین اضافه کردم تا هیچ مطلبی بدون تایید امضای دیجیتال من منتشر نشود.',
-      timestamp: 'امروز - ۱۰:۲۲',
-      actionsTaken: [
-        'توقف انتشار مقاله و بازگشت به صف ویرایش',
-        'ایجاد تسک اصلاح ساختار برای نگار پارسا',
-        'فعال‌سازی گیت تایید نهایی اجباری (Audit Gate) در سیستم',
-      ],
-    },
-  ],
-  social: [
-    {
-      id: 's1',
-      departmentId: 'social',
-      sender: 'ceo',
-      senderName: 'مدیرعامل',
-      text: 'سارا، برای تخفیف‌های پنج‌شنبه و جمعه چقدر آماده‌اید؟ محتوای کانال‌ها هماهنگ شده؟',
-      timestamp: 'امروز - ۰۹:۴۰',
-    },
-    {
-      id: 's2',
-      departmentId: 'social',
-      sender: 'lead',
-      senderName: 'سارا راد (مدیر سوشال)',
-      text: 'درود جناب مدیرعامل. بله، پکیج کامل آماده است! بنرهای تخفیف با تم پاییزی توسط روژان طراحی شده و کپی‌رایتر متن جذاب با کد GolinoWeekend رو آماده کرده. الان تسک در وضعیت "نیازمند تایید شما" در داشبورد قرار گرفته. به محض اینکه یک نگاه بندازید و تایید کنید، بات تلگرام و بله سر ساعت ۱۵:۰۰ ارسال می‌کنند.',
-      timestamp: 'امروز - ۰۹:۴۸',
-      actionsTaken: [
-        'طراحی ۲ تمپلیت تصویر اختصاصی',
-        'آماده‌سازی متن متناسب با تلگرام، بله و استوری اینستاگرام',
-        'ارسال تسک به کارتابل مدیرعامل جهت تایید نهایی',
-      ],
-    },
-  ],
-};
+// Clean slate - Empty chat histories (waiting for CEO's first real meeting!)
+export const INITIAL_CHAT_HISTORY: Record<string, ChatMessage[]> = {};

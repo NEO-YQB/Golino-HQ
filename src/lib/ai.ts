@@ -1,10 +1,17 @@
-import { Department, ChatMessage, BoardroomMessage, BoardroomActionItem } from '@/types';
+import { Department, ChatMessage, BoardroomMessage, BoardroomActionItem, TaskItem } from '@/types';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 interface LeadAIResponse {
   replyText: string;
   actionsTaken: string[];
+  newTask?: {
+    titleFa: string;
+    contentFa: string;
+    imageUrl?: string;
+    assignedAgentName: string;
+    targetChannels?: string[];
+  };
 }
 
 export async function askDepartmentLead(
@@ -14,17 +21,24 @@ export async function askDepartmentLead(
 ): Promise<LeadAIResponse> {
   const lead = department.leadAgent;
 
-  // If Gemini API Key is provided, call Google Gemini REST API
+  let replyText = '';
+  let actionsTaken: string[] = [];
+  let newTask: LeadAIResponse['newTask'] | undefined = undefined;
+
+  // 1. If Gemini API Key is provided, call Google Gemini REST API (gemini-3.5-flash-lite)
   if (GEMINI_API_KEY && GEMINI_API_KEY !== 'your_gemini_api_key_here') {
     try {
       const systemInstruction = `${lead.systemPrompt}
-اطلاعات مهم گلینو:
-گلینو یک مارکت‌پلیس لوکس آنلاین خرید گل و گیاه در ایران است. شما با مدیرعامل (کاربر) در جلسه اختصاصی صحبت می‌کنید.
-اعضای تیم شما: ${department.members.map((m) => `${m.name} (${m.roleFa})`).join('، ')}.
-وظیفه شما:
-۱. پاسخ محترمانه، روشن، به زبان فارسی روان و کاملاً راست‌چین و بدون اصطلاحات مبهم.
-۲. اگر مدیرعامل ایرادی گرفت یا فیدبکی داد (مثلاً خطای عدم چک نهایی، مشکل در پست، تاخیر)، بلافاصله مسئولیت را بپذیر، دلیل فنی یا اجرایی را بگو و توضیح بده که دقیقاً کدام کار به کدام عضو تیمت ارجاع شد تا برطرف شود.
-۳. در انتهای پاسخت، اقداماتی که فوراً برای اجرای دستور مدیرعامل انجام دادی را در قالب یک بخش با عنوان «اقدامات اجرایی:» لیست کن.`;
+اطلاعات سازمان گلینو (golino.shop):
+- پلتفرم تخصصی و مارکت‌پلیس گل و گیاه، دسته‌گل‌های لوکس، باکس‌های هدیه و ارسال فوری.
+- شما در حال گفتگو با شخص مدیرعامل گلینو هستید.
+- اعضای دپارتمان شما: ${department.members.map((m) => `${m.name} (${m.roleFa})`).join('، ')}.
+
+وظایف مهم شما در پاسخگویی:
+۱. فارسی بسیار روان، فاخر، محترمانه و قاطع بنویسید.
+۲. کارهای مشخص را بین ادمین‌ها و اعضای تیم تقسیم کنید (امیر برای تلگرام و بله، پریا برای اینستاگرام و روبیکا، کیوان برای ایکس و لینکدین، مانی برای متن و سناریو، روژان برای تصویر و طراحی).
+۳. در انتهای پیام حتماً بخشی با عنوان «اقدامات اجرایی:» بگذارید و هر اقدام را با خط تیره (-) شروع کنید.
+۴. اگر مدیرعامل دستوری برای تولید پست، کمپین، تخفیف یا محتوا داد، در انتهای متن خود بخشی با عنوان «پیش‌نویس محتوای آماده تایید:» بگذارید و متن پیشنهادی کامل پست را با هشتگ‌ها بنویسید تا سیستم آن را به کارتابل تسک‌های مدیرعامل اضافه کند.`;
 
       const formattedHistory = history.slice(-6).map((msg) => ({
         role: msg.sender === 'ceo' ? 'user' : 'model',
@@ -37,7 +51,7 @@ export async function askDepartmentLead(
       });
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -48,7 +62,7 @@ export async function askDepartmentLead(
             },
             generationConfig: {
               temperature: 0.7,
-              maxOutputTokens: 1000,
+              maxOutputTokens: 1200,
             },
           }),
         }
@@ -59,66 +73,91 @@ export async function askDepartmentLead(
         const candidateText =
           data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-        // Extract actions taken if present
-        const actions: string[] = [];
+        replyText = candidateText;
+
+        // Parse Actions
         if (candidateText.includes('اقدامات اجرایی:')) {
           const parts = candidateText.split('اقدامات اجرایی:');
-          const actionsPart = parts[1];
-          const lines = actionsPart.split('\n');
+          const afterActions = parts[1].split('پیش‌نویس محتوای آماده تایید:')[0];
+          const lines = afterActions.split('\n');
           for (const line of lines) {
             const clean = line.replace(/^[-*•\d.]+\s*/, '').trim();
-            if (clean.length > 3) actions.push(clean);
+            if (clean.length > 3) actionsTaken.push(clean);
           }
         }
 
-        return {
-          replyText: candidateText,
-          actionsTaken:
-            actions.length > 0
-              ? actions
-              : [`ارجاع دستور به اعضای دپارتمان ${department.nameFa}`, 'ثبت لاگ در کارتابل تیم'],
-        };
+        // Parse Draft Content if generated
+        if (candidateText.includes('پیش‌نویس محتوای آماده تایید:')) {
+          const draftText = candidateText.split('پیش‌نویس محتوای آماده تایید:')[1].trim();
+          if (draftText.length > 10) {
+            newTask = {
+              titleFa: `محتوای شبکه‌های اجتماعی: ${ceoPrompt.slice(0, 45)}...`,
+              contentFa: draftText,
+              imageUrl: getCuratedFloralImage(ceoPrompt),
+              assignedAgentName: 'پریا ویژوال و امیر پیام‌رسان',
+              targetChannels: ['تلگرام', 'بله', 'اینستاگرام'],
+            };
+          }
+        }
       }
     } catch (err) {
       console.error('Error invoking Gemini API:', err);
     }
   }
 
-  // Realistic Intelligent Fallback when API key is not yet set
-  const lowerPrompt = ceoPrompt.toLowerCase();
-  let reply = `سلام و احترام جناب مدیرعامل. پیام و دستور شما را با دقت دریافت کردم.\n\n`;
-  const actions: string[] = [];
+  // 2. Fallback if API response was empty or error
+  if (!replyText) {
+    replyText = `درود و احترام جناب مدیرعامل. پیام و دستور شما دریافت شد و بلافاصله در دستور کار دپارتمان ${department.nameFa} قرار گرفت.\n\nمن همین الان هماهنگی را با تیم آغاز کردم:
+- مانی قلمی نگارش قلاب و سناریوی اصلی را شروع کرد.
+- روژان دیزاین در حال خلق هویت بصری متناسب با برند گلینو است.
+- امیر (ادمین تلگرام/بله) و پریا (ادمین اینستا/روبیکا) فرمت‌های انتشار و پاسخگویی به پیام‌های مخاطبان را آماده می‌کنند.
 
-  if (
-    lowerPrompt.includes('ایراد') ||
-    lowerPrompt.includes('اشتباه') ||
-    lowerPrompt.includes('چک') ||
-    lowerPrompt.includes('اصلاح') ||
-    lowerPrompt.includes('مشکل')
-  ) {
-    reply += `کاملاً متوجه حساسیت موضوع شدم و بابت این نقص در خروجی عذرخواهی می‌کنم. بررسی کردم و مشخص شد که در گیت ممیزی پیش از نهایی‌سازی، بازبینی کامل انجام نشده بود.\n\nمن همین الان دستور توقف فرایند را صادر کردم و مستقیماً تسک اصلاح فوری را با اولویت بحرانی (Urgent) به اعضای مسئول تیم ارجاع دادم. تا ساعاتی دیگر نسخه کاملاً اصلاح‌شده و باکیفیت را مجدداً برای شما ارسال خواهیم کرد تا شخصاً تایید بفرمایید.`;
-    actions.push(`ایجاد تسک اصلاح فوری برای اعضای دپارتمان ${department.nameFa}`);
-    actions.push('فعال‌سازی چک‌لیست دو مرحله‌ای پیش از انتشار');
-    actions.push('آماده‌سازی پیش‌نویس جدید جهت رویت مدیرعامل');
-  } else if (
-    lowerPrompt.includes('برنامه') ||
-    lowerPrompt.includes('کجا') ||
-    lowerPrompt.includes('وضعیت') ||
-    lowerPrompt.includes('چند')
-  ) {
-    reply += `گزارش وضعیت لحظه‌ای دپارتمان ${department.nameFa}:\nهم‌اکنون تیم با تمام ظرفیت مشغول اجرای صف تسک‌هاست. اعضای تیم هر کدام وظایف محوله را طبق تایم‌لاین پیش می‌برند و تمام موانع برطرف شده است. گزارش مشروح کارهای انجام‌شده نیز در بخش گزارش‌های دوره‌ای برای شما آپلود شده است.`;
-    actions.push('بروزرسانی وضعیت صف تسک‌ها');
-    actions.push('همگام‌سازی زمان‌بندی با سرور اصلی');
-  } else {
-    reply += `دستور شما در دستور کار مستقیم دپارتمان ${department.nameFa} قرار گرفت. سناریو و جزئیات اجرایی را با بچه‌های تیم در میان گذاشتم و بر خروجی کار نظارت مستقیم خواهم داشت تا با بالاترین استانداردهای برند لوکس گلینو تحویل شما گردد.`;
-    actions.push(`تعریف تسک جدید بر اساس بیانات مدیرعامل`);
-    actions.push('تخصیص منابع به اعضای فعال تیم');
+پیش‌نویس نهایی به همراه عکس و متن کامل تا ساعاتی دیگر در کارتابل تسک‌های شما قرار می‌گیرد تا پس از تایید نهایی شما منتشر شود.
+
+اقدامات اجرایی:
+- تدوین سناریو و تقویم اجرایی برای: ${ceoPrompt}
+- ارجاع وظایف به ادمین‌های تلگرام، بله، اینستاگرام و روبیکا
+- آماده‌سازی پیش‌نویس جهت تایید مدیرعامل`;
+
+    actionsTaken = [
+      `برنامه‌ریزی اجرایی برای دستور مدیرعامل`,
+      `ارجاع سناریو به مانی قلمی (کپی‌رایتر)`,
+      `ارجاع طراحی بصری به روژان دیزاین`,
+      `آماده‌باش امیر پیام‌رسان و پریا ویژوال جهت بارگذاری`,
+    ];
+
+    newTask = {
+      titleFa: `بسته محتوایی: ${ceoPrompt.slice(0, 40)}`,
+      contentFa: `🌸 هدیه‌ای از جنس طراوت و عشق در گلینو\n\nبرای ثبت سفارش و ارسال فوری دسته‌گل‌های روز به سایت گلینو سر بزنید:\n🌐 golino.shop\n\n#گلینو #خرید_گل #دسته_گل_لوکس #ارسال_فوری`,
+      imageUrl: getCuratedFloralImage(ceoPrompt),
+      assignedAgentName: 'تیم محتوای سوشال مدیا',
+      targetChannels: ['تلگرام', 'بله', 'اینستاگرام'],
+    };
   }
 
   return {
-    replyText: reply,
-    actionsTaken: actions,
+    replyText,
+    actionsTaken:
+      actionsTaken.length > 0
+        ? actionsTaken
+        : [`ارجاع دستورات به اعضای دپارتمان ${department.nameFa}`],
+    newTask,
   };
+}
+
+export function getCuratedFloralImage(prompt: string): string {
+  const p = prompt.toLowerCase();
+  if (p.includes('رز') || p.includes('قرمز') || p.includes('عشق') || p.includes('ولنتاین')) {
+    return 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1000&q=80';
+  }
+  if (p.includes('ارکیده') || p.includes('سفید') || p.includes('عروس')) {
+    return 'https://images.unsplash.com/photo-1525310072745-f49212b5ac6d?auto=format&fit=crop&w=1000&q=80';
+  }
+  if (p.includes('باکس') || p.includes('جعبه') || p.includes('هدیه') || p.includes('لوکس')) {
+    return 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&w=1000&q=80';
+  }
+  // Default luxury floral
+  return 'https://images.unsplash.com/photo-1561181286-d3fee7d55364?auto=format&fit=crop&w=1000&q=80';
 }
 
 export async function runBoardroomSimulation(
@@ -128,7 +167,6 @@ export async function runBoardroomSimulation(
   const messages: BoardroomMessage[] = [];
   const actionItems: BoardroomActionItem[] = [];
 
-  // Simulate or generate lively cross-department dialogue
   for (let i = 0; i < departments.length; i++) {
     const dept = departments[i];
     const lead = dept.leadAgent;
@@ -136,21 +174,21 @@ export async function runBoardroomSimulation(
     let text = '';
     let task = '';
 
-    if (dept.id === 'seo') {
-      text = `از منظر دپارتمان سئو، برای موضوع «${topic}»، ما بررسی کردیم که پتانسیل جستجوی بسیار بالایی در سرچ گوگل وجود دارد. من به نگار و کامران در تیمم دستور می‌دهم که کلمات کلیدی هدف و لندینگ پیج اختصاصی با اسکیما کامل رو ظرف ۲۴ ساعت آماده کنند.`;
-      task = `تدوین لندینگ پیج سئو و کلمات کلیدی برای موضوع: ${topic}`;
-    } else if (dept.id === 'social') {
-      text = `بسیار عالی! در دپارتمان سوشال مدیا، ما این موضوع را در قالب یک کمپین ۳ مرحله‌ای (تیزر، انتشار اصلی و مسابقه تعاملی) برای تلگرام، بله و اینستاگرام لانچ می‌کنیم. هماهنگی محتوا و عکس‌های گل‌ها را هم با ربات انتشار ست خواهیم کرد.`;
-      task = `طراحی سناریو و تقویم انتشار شبکه‌های اجتماعی برای: ${topic}`;
+    if (dept.id === 'social') {
+      text = `در دپارتمان سوشال مدیا، ما این دستور را با ۶ ادمین در ۶ پلتفرم اجرا می‌کنیم: امیر برای تلگرام و بله کاتالوگ فروش را آماده می‌کند، پریا در اینستاگرام و روبیکا ریلز و استوری می‌زند، و کیوان در لینکدین و توییتر تعامل را آغاز می‌کند. روژان هم طراحی بصری لوکس را پیش می‌برد.`;
+      task = `اجرای کمپین ۶ کاناله سوشال مدیا برای موضوع: ${topic}`;
+    } else if (dept.id === 'seo') {
+      text = `از منظر دپارتمان سئو، ما لندینگ پیج تخصصی مرتبط با «${topic}» را با اسکیما کامل و کلمات کلیدی پرجستجوی گوگل آماده می‌کنیم تا ورودی ارگانیک همزمان با سوشال رشد کند.`;
+      task = `تولید لندینگ پیج و سئو ساختار برای: ${topic}`;
     } else if (dept.id === 'support') {
-      text = `تیم پشتیبانی هم در این بازه کاملاً در حالت آماده‌باش قرار می‌گیرد تا اگر سوالی درباره شرایط سفارش، قیمت‌ها یا ارسال فوری در گلینو بود، پاسخگویی زیر ۵ دقیقه صورت گیرد.`;
-      task = `تدوین پرسش‌های متداول و آموزش پاسخگوی هوشمند برای: ${topic}`;
+      text = `تیم پشتیبانی برای پاسخگویی به استعلامات و راهنمایی خریداران پیرامون «${topic}» در آماده‌باش کامل قرار می‌گیرد.`;
+      task = `آموزش بات پشتیبان و سناریوی پاسخگویی ۲۴/۷ برای: ${topic}`;
     } else if (dept.id === 'vendors') {
-      text = `ما نیز فوراً با گل‌فروشی‌های برتر عضو گلینو در تهران و شهرستان‌ها هماهنگ می‌کنیم تا موجودی گل‌های تازه و بسته‌بندی‌های لوکس متناسب با این طرح تضمین شود.`;
-      task = `اطلاع‌رسانی به فروشندگان برتر و بررسی ظرفیت ارسال برای: ${topic}`;
+      text = `ما هماهنگی با گل‌فروشی‌های تامین‌کننده در سراسر کشور را انجام می‌دهیم تا کیفیت گل‌ها و سرعت ارسال ۱ ساعته تضمین شود.`;
+      task = `بررسی ظرفیت و کیفیت گل‌فروشان برای: ${topic}`;
     } else {
-      text = `دپارتمان ما وظایف مربوطه را دریافت کرد و همراه با سایر دپارتمان‌ها هماهنگی کامل را برای خروجی ایده‌آل خواهد داشت.`;
-      task = `پیگیری و هماهنگی درون‌سازمانی پیرامون: ${topic}`;
+      text = `دپارتمان ما وظایف محوله را دریافت کرد و همراه با سایر دپارتمان‌ها هماهنگی کامل را برای خروجی ایده‌آل خواهد داشت.`;
+      task = `پیگیری و هماهنگی سازمانی: ${topic}`;
     }
 
     messages.push({

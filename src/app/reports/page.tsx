@@ -52,7 +52,18 @@ export default function ReportsPage() {
 
       {/* Reports List */}
       <div className="space-y-6">
-        {reports.map((report) => (
+        {reports.length === 0 ? (
+          <div className="bg-[#121824] p-10 rounded-2xl border border-[#1f293d] text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-slate-800/60 mx-auto flex items-center justify-center text-slate-400">
+              <FileText className="w-6 h-6" />
+            </div>
+            <h3 className="text-sm font-bold text-white">صندوق گزارش‌ها آماده اولین دوره کاری</h3>
+            <p className="text-xs text-hq-muted max-w-sm mx-auto leading-relaxed">
+              گزارش‌های رسمی و تحلیلی عملکرد دپارتمان‌ها به‌صورت هفتگی و ماهانه پس از اجرای اولین تسک‌ها در این بخش قرار می‌گیرند.
+            </p>
+          </div>
+        ) : (
+          reports.map((report) => (
           <div
             key={report.id}
             className="bg-[#121824] rounded-2xl border border-[#1f293d] overflow-hidden p-5 space-y-4 shadow-xl"
@@ -145,7 +156,8 @@ export default function ReportsPage() {
               </div>
             </div>
           </div>
-        ))}
+        ))
+      )}
       </div>
     </div>
   );

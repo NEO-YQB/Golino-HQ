@@ -7,8 +7,10 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  Filter,
   MessageSquare,
+  Share2,
+  Eye,
+  Send,
 } from 'lucide-react';
 import { TaskItem, TaskStatus } from '@/types';
 
@@ -68,7 +70,7 @@ export default function TasksPage() {
       case 'completed':
         return (
           <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full font-bold border border-emerald-500/30">
-            تکمیل شده
+            تایید و منتشر شده
           </span>
         );
       case 'pending':
@@ -86,7 +88,7 @@ export default function TasksPage() {
     return (
       <div className="py-20 flex flex-col items-center justify-center gap-3">
         <div className="w-10 h-10 border-4 border-gold-400 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-sm text-hq-muted">در حال بارگذاری صف تسک‌ها...</p>
+        <p className="text-sm text-hq-muted">در حال بارگذاری کارتابل تسک‌ها...</p>
       </div>
     );
   }
@@ -103,7 +105,7 @@ export default function TasksPage() {
             </h1>
           </div>
           <p className="text-xs text-slate-400">
-            کنترل لحظه‌ای فعالیت‌ها، اولویت‌بندی، و تایید نهایی خروجی‌های آماده انتشار.
+            مشاهده پیش‌نویس محتواهای تولیدشده، تصاویر آماده، و تایید نهایی برای انتشار در کانال‌ها.
           </p>
         </div>
       </div>
@@ -148,59 +150,113 @@ export default function TasksPage() {
               : 'bg-[#121824] text-slate-300 hover:bg-[#1a2334] border border-[#1f293d]'
           }`}
         >
-          تکمیل شده ({tasks.filter((t) => t.status === 'completed').length})
+          تکمیل و منتشر شده ({tasks.filter((t) => t.status === 'completed').length})
         </button>
       </div>
 
       {/* Tasks List */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {filteredTasks.length === 0 ? (
-          <div className="bg-[#121824] p-8 rounded-xl border border-[#1f293d] text-center text-hq-muted text-sm">
-            تسکی با این فیلتر یافت نشد.
+          <div className="bg-[#121824] p-10 rounded-2xl border border-[#1f293d] text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-slate-800/80 mx-auto flex items-center justify-center text-slate-400">
+              <CheckSquare className="w-6 h-6" />
+            </div>
+            <h3 className="text-sm font-bold text-white">هیچ تسکی در این بخش وجود ندارد</h3>
+            <p className="text-xs text-hq-muted max-w-sm mx-auto leading-relaxed">
+              تسک‌ها به صورت خودکار زمانی ایجاد می‌شوند که شما در اتاق جلسه با مدیران (مثل سارا راد در سوشال) گفتگو کرده و دستوری ثبت نمایید.
+            </p>
+            <Link
+              href="/meeting/social"
+              className="inline-flex items-center gap-1.5 bg-gold-500 hover:bg-gold-400 text-black text-xs font-bold px-4 py-2 rounded-xl transition-colors mt-2"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>ورود به جلسه با سارا راد و ثبت تسک</span>
+            </Link>
           </div>
         ) : (
           filteredTasks.map((task) => (
             <div
               key={task.id}
-              className={`p-4 rounded-xl border transition-all ${
+              className={`p-4 rounded-2xl border transition-all space-y-3 ${
                 task.status === 'awaiting_approval'
-                  ? 'bg-[#161f30] border-gold-400/40'
+                  ? 'bg-[#161f30] border-gold-400/40 shadow-lg shadow-gold-500/5'
                   : 'bg-[#121824] border-[#1f293d]'
               }`}
             >
-              <div className="flex items-start justify-between flex-wrap gap-2 mb-2">
+              {/* Task Header */}
+              <div className="flex items-start justify-between flex-wrap gap-2">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[11px] font-bold text-gold-400">
                       {task.departmentNameFa}
                     </span>
                     <span className="text-slate-500">•</span>
-                    <span className="text-xs text-slate-400">مسئول: {task.assignedAgentName}</span>
+                    <span className="text-xs text-slate-300">مسئول: {task.assignedAgentName}</span>
                     <span className="text-slate-500">•</span>
                     <span className="text-xs text-slate-400">موعد: {task.dueDateFa}</span>
                   </div>
-                  <h3 className="text-sm font-bold text-white">{task.titleFa}</h3>
+                  <h3 className="text-sm md:text-base font-bold text-white">{task.titleFa}</h3>
                 </div>
                 <div>{getStatusBadge(task.status)}</div>
               </div>
 
-              {task.notesFa && (
-                <p className="text-xs text-slate-300 bg-[#0b0f17] p-2.5 rounded-lg border border-[#1f293d]/60 mb-3 leading-relaxed">
-                  {task.notesFa}
-                </p>
+              {/* Target Channels Badges */}
+              {task.targetChannels && task.targetChannels.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] text-slate-400">کانال‌های مقصد:</span>
+                  {task.targetChannels.map((ch, idx) => (
+                    <span
+                      key={idx}
+                      className="text-[10px] bg-slate-800 text-slate-200 px-2 py-0.5 rounded border border-slate-700"
+                    >
+                      {ch}
+                    </span>
+                  ))}
+                </div>
               )}
 
+              {/* Media & Content Draft Preview */}
+              {(task.contentFa || task.imageUrl) && (
+                <div className="bg-[#0b0f17] p-3.5 rounded-xl border border-[#1f293d]/80 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+                    <span className="flex items-center gap-1.5 text-gold-400">
+                      <Eye className="w-4 h-4" />
+                      پیش‌نمایش محتوای آماده انتشار:
+                    </span>
+                    <span className="text-[11px] text-slate-400">تولید شده توسط تیم</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    {task.imageUrl && (
+                      <div className="md:col-span-1">
+                        <img
+                          src={task.imageUrl}
+                          alt="بنر محتوا"
+                          className="w-full h-32 md:h-full object-cover rounded-lg border border-slate-800"
+                        />
+                      </div>
+                    )}
+                    <div className={task.imageUrl ? 'md:col-span-3' : 'md:col-span-4'}>
+                      <p className="text-xs md:text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">
+                        {task.contentFa}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Bar */}
               <div className="pt-2 border-t border-[#1f293d] flex items-center justify-between flex-wrap gap-2">
-                <span className="text-[11px] text-hq-muted">شناسه تسک: {task.id}</span>
+                <span className="text-[11px] text-hq-muted">شناسه: {task.id}</span>
 
                 <div className="flex items-center gap-2">
                   {task.status === 'awaiting_approval' && (
                     <button
                       onClick={() => handleUpdateStatus(task.id, 'completed')}
-                      className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors shadow-lg shadow-emerald-900/20"
+                      className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors shadow-lg shadow-emerald-900/20"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>تایید و انتشار نهایی</span>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>تایید و انتشار خودکار در شبکه‌ها</span>
                     </button>
                   )}
                   {task.status === 'in_progress' && (
@@ -208,15 +264,15 @@ export default function TasksPage() {
                       onClick={() => handleUpdateStatus(task.id, 'completed')}
                       className="text-xs text-emerald-400 hover:text-emerald-300 font-medium px-2 py-1"
                     >
-                      علامت‌گذاری به عنوان تکمیل شده
+                      تکمیل دستی
                     </button>
                   )}
                   <Link
                     href={`/meeting/${task.departmentId}`}
-                    className="flex items-center gap-1 bg-[#1a2334] hover:bg-[#25334c] text-slate-300 text-xs px-2.5 py-1.5 rounded-lg border border-[#1f293d] transition-colors"
+                    className="flex items-center gap-1 bg-[#1a2334] hover:bg-[#25334c] text-slate-300 text-xs px-3 py-1.5 rounded-xl border border-[#1f293d] transition-colors"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
-                    <span>فیدبک در جلسه</span>
+                    <span>فیدبک و گفتگو با مدیر</span>
                   </Link>
                 </div>
               </div>

@@ -11,6 +11,7 @@ export interface Agent {
   model: string;
   status: AgentStatus;
   specialtyFa: string;
+  assignedChannelsFa?: string;
   systemPrompt?: string;
 }
 
@@ -42,6 +43,9 @@ export interface TaskItem {
   createdAt: string;
   dueDateFa: string;
   notesFa?: string;
+  contentFa?: string;
+  imageUrl?: string;
+  targetChannels?: string[];
 }
 
 export interface ExecutiveReport {
@@ -69,6 +73,11 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
   actionsTaken?: string[];
+  createdTask?: {
+    title: string;
+    assignedTo: string;
+    previewText?: string;
+  };
 }
 
 export interface BoardroomMessage {
@@ -107,4 +116,14 @@ export interface EscalationMessage {
   urgency: 'normal' | 'urgent' | 'critical';
   status: 'unread' | 'read' | 'resolved';
   timestamp: string;
+}
+
+export interface SocialChannelConfig {
+  id: 'telegram' | 'bale' | 'instagram' | 'rubika' | 'x' | 'linkedin';
+  nameFa: string;
+  assignedAdminName: string;
+  status: 'connected' | 'needs_setup';
+  botToken?: string;
+  channelId?: string;
+  notesFa: string;
 }
