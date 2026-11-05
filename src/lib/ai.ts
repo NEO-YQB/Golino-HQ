@@ -12,9 +12,15 @@ export async function askDepartmentLead(
   let replyText = '';
   let newTask: TaskItem | undefined = undefined;
 
-  if (GEMINI_API_KEY && GEMINI_API_KEY !== 'your_gemini_api_key_here') {
-    try {
-      let systemInstruction = `تو «${lead.name}» هستی، ${lead.roleFa} در مارکت‌پلیس گلینو (golino.shop).
+  const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+
+  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+    replyText = `⚠️ افشین جان، ارتباط من با مغز هوش مصنوعی (Gemini API) هنوز برقرار نشده، چون متغیر محیطی GEMINI_API_KEY در تنظیمات کولایفای (Coolify) وارد نشده یا بعد از ذخیره، کانتینر Redeploy نشده است.\n\nلطفاً در تب Environment Variables کولایفای، کلید GEMINI_API_KEY را ثبت و پروژه را Redeploy کن تا فوراً شروع به صحبت کنیم.`;
+    return { replyText, newTask };
+  }
+
+  try {
+    let systemInstruction = `تو «${lead.name}» هستی، ${lead.roleFa} در مارکت‌پلیس گلینو (golino.shop).
 تخصص تو: ${lead.systemPrompt || lead.specialtyFa || ''}
 
 طرف گفتگوی تو «افشین» (مدیرعامل و بنیان‌گذار گلینو) است.
@@ -22,71 +28,68 @@ export async function askDepartmentLead(
 - آزادانه بشنو، تحلیل کن، نظرت را بگو و تبادل نظر کن.
 - اصلاً و ابداً در قالب‌های اداری یا جواب‌های کلیشه‌ای نرو. نیازی به لیست کردن کارها یا ساختن وظایف نیست؛ فقط یک گفتگوی انسانی، هوشمندانه و آزاد داشته باش.`;
 
-      if (departmentKnowledge && departmentKnowledge.trim().length > 0) {
-        systemInstruction += `\n\n📌 اطلاعات و پیش‌زمینه دپارتمان تو در سیستم:\n${departmentKnowledge}`;
-      }
-
-      // Build clean alternating history for Gemini: strictly user -> model -> user -> model -> user
-      const contents: { role: 'user' | 'model'; parts: { text: string }[] }[] = [];
-      const validHistory = history.filter((m) => m.text && m.text.trim().length > 0).slice(-10);
-
-      for (const msg of validHistory) {
-        const role = msg.sender === 'ceo' ? 'user' : 'model';
-
-        // History cannot start with model
-        if (contents.length === 0 && role === 'model') continue;
-
-        // If consecutive same role, keep the latest text to ensure strict alternation
-        if (contents.length > 0 && contents[contents.length - 1].role === role) {
-          contents[contents.length - 1].parts[0].text = msg.text;
-        } else {
-          contents.push({ role, parts: [{ text: msg.text }] });
-        }
-      }
-
-      // If the last message in history was user, replace it with current prompt; otherwise append
-      if (contents.length > 0 && contents[contents.length - 1].role === 'user') {
-        contents[contents.length - 1].parts[0].text = ceoPrompt;
-      } else {
-        contents.push({ role: 'user', parts: [{ text: ceoPrompt }] });
-      }
-
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents,
-            systemInstruction: {
-              parts: [{ text: systemInstruction }],
-            },
-            generationConfig: {
-              temperature: 0.9,
-              maxOutputTokens: 1200,
-            },
-          }),
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      }
-    } catch (err) {
-      console.error('Error invoking Gemini API:', err);
+    if (departmentKnowledge && departmentKnowledge.trim().length > 0) {
+      systemInstruction += `\n\n📌 اطلاعات و پیش‌زمینه دپارتمان تو در سیستم:\n${departmentKnowledge}`;
     }
+
+    // Build clean alternating history for Gemini: strictly user -> model -> user -> model -> user
+    const contents: { role: 'user' | 'model'; parts: { text: string }[] }[] = [];
+    const validHistory = history.filter((m) => m.text && m.text.trim().length > 0).slice(-10);
+
+    for (const msg of validHistory) {
+      const role = msg.sender === 'ceo' ? 'user' : 'model';
+
+      // History cannot start with model
+      if (contents.length === 0 && role === 'model') continue;
+
+      // If consecutive same role, keep the latest text to ensure strict alternation
+      if (contents.length > 0 && contents[contents.length - 1].role === role) {
+        contents[contents.length - 1].parts[0].text = msg.text;
+      } else {
+        contents.push({ role, parts: [{ text: msg.text }] });
+      }
+    }
+
+    // If the last message in history was user, replace it with current prompt; otherwise append
+    if (contents.length > 0 && contents[contents.length - 1].role === 'user') {
+      contents[contents.length - 1].parts[0].text = ceoPrompt;
+    } else {
+      contents.push({ role: 'user', parts: [{ text: ceoPrompt }] });
+    }
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents,
+          systemInstruction: {
+            parts: [{ text: systemInstruction }],
+          },
+          generationConfig: {
+            temperature: 0.9,
+            maxOutputTokens: 1200,
+          },
+        }),
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    } else {
+      const errorText = await response.text();
+      console.error(`Gemini API returned error ${response.status}:`, errorText);
+      replyText = `⚠️ افشین جان، سرویس هوش مصنوعی گوگل خطای ${response.status} برگرداند: ${errorText.slice(0, 150)}`;
+    }
+  } catch (err: any) {
+    console.error('Error invoking Gemini API:', err);
+    replyText = `⚠️ افشین جان، در برقراری تماس با سرور هوش مصنوعی خطایی رخ داد: ${err?.message || err}`;
   }
 
-  // Natural fallback if API key is not reached
   if (!replyText) {
-    if (department.id === 'social') {
-      replyText = `سلام افشین جان. در مورد موضوعی که گفتی، به نظرم می‌تونیم زاویه دید خیلی جالب‌تری بهش داشته باشیم و روش مانور بدیم. نظرت چیه قبل از هر تصمیمی، یه بار بازخورد مخاطب‌ها رو بسنجیم؟`;
-    } else if (department.id === 'seo') {
-      replyText = `سلام افشین جان. در مورد این موضوع بررسی کردم؛ پتانسیل خوبی داره ولی باید ببینیم چقدر با استراتژی کلی سئوی این ماهمون هماهنگه. نظرت روی اولویت‌بندیش چیه؟`;
-    } else {
-      replyText = `سلام افشین جان. نکته‌ات رو گرفتم و کاملاً قابل بحثه. بگو از چه زاویه‌ای بیشتر مدنظرته تا عمیق‌تر بررسیش کنیم.`;
-    }
+    replyText = `افشین جان، پاسخی از طرف مدل هوش مصنوعی بازگردانده نشد. لطفاً دوباره پیام بده یا لاگ کانتینر را بررسی کن.`;
   }
 
   // Only create a task if Afshin explicitly requested it in text
