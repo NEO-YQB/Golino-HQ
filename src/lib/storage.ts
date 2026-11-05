@@ -194,6 +194,29 @@ export async function saveTasks(tasks: TaskItem[]) {
   writeJsonFile('tasks.json', tasks);
 }
 
+export async function deleteTask(taskId: string): Promise<boolean> {
+  if (isDbConnected()) {
+    try {
+      const task = await prisma.task.findUnique({ where: { id: taskId } });
+      if (task) {
+        await prisma.task.delete({ where: { id: taskId } });
+        await prisma.department.updateMany({
+          where: { id: task.departmentId, activeTasksCount: { gt: 0 } },
+          data: { activeTasksCount: { decrement: 1 } },
+        });
+      }
+      return true;
+    } catch (err) {
+      console.error('Database deleteTask error:', err);
+    }
+  }
+
+  const tasks = readJsonFile<TaskItem[]>('tasks.json', INITIAL_TASKS);
+  const filtered = tasks.filter((t) => t.id !== taskId);
+  writeJsonFile('tasks.json', filtered);
+  return true;
+}
+
 // -------------------------------------------------------------
 // Reports
 // -------------------------------------------------------------

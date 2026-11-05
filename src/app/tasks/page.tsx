@@ -10,7 +10,7 @@ import {
   MessageSquare,
   Share2,
   Eye,
-  Send,
+  Trash2,
 } from 'lucide-react';
 import { TaskItem, TaskStatus } from '@/types';
 
@@ -47,6 +47,20 @@ export default function TasksPage() {
     }
   };
 
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm('آیا از حذف این تسک اطمینان دارید؟')) return;
+    try {
+      const res = await fetch(`/api/tasks?taskId=${taskId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const filteredTasks = tasks.filter((t) => {
     if (filterStatus !== 'all' && t.status !== filterStatus) return false;
     if (filterDept !== 'all' && t.departmentId !== filterDept) return false;
@@ -70,7 +84,7 @@ export default function TasksPage() {
       case 'completed':
         return (
           <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full font-bold border border-emerald-500/30">
-            تایید و منتشر شده
+            تکمیل و منتشر شده
           </span>
         );
       case 'pending':
@@ -105,7 +119,7 @@ export default function TasksPage() {
             </h1>
           </div>
           <p className="text-xs text-slate-400">
-            مشاهده پیش‌نویس محتواهای تولیدشده، تصاویر آماده، و تایید نهایی برای انتشار در کانال‌ها.
+            مشاهده پیش‌نویس محتواهای تولیدشده، تصاویر آماده، تایید برای انتشار یا حذف تسک‌های غیرضروری.
           </p>
         </div>
       </div>
@@ -158,7 +172,7 @@ export default function TasksPage() {
       <div className="space-y-4">
         {filteredTasks.length === 0 ? (
           <div className="bg-[#121824] p-10 rounded-2xl border border-[#1f293d] text-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-slate-800/80 mx-auto flex items-center justify-center text-slate-400">
+            <div className="w-12 h-12 rounded-full bg-slate-800/60 mx-auto flex items-center justify-center text-slate-400">
               <CheckSquare className="w-6 h-6" />
             </div>
             <h3 className="text-sm font-bold text-white">هیچ تسکی در این بخش وجود ندارد</h3>
@@ -272,8 +286,18 @@ export default function TasksPage() {
                     className="flex items-center gap-1 bg-[#1a2334] hover:bg-[#25334c] text-slate-300 text-xs px-3 py-1.5 rounded-xl border border-[#1f293d] transition-colors"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
-                    <span>فیدبک و گفتگو با مدیر</span>
+                    <span>فیدبک و گفتگو</span>
                   </Link>
+
+                  {/* Delete Task Button */}
+                  <button
+                    onClick={() => handleDeleteTask(task.id)}
+                    className="flex items-center gap-1 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs px-2.5 py-1.5 rounded-xl border border-rose-500/20 transition-colors"
+                    title="حذف دائمی تسک"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>حذف</span>
+                  </button>
                 </div>
               </div>
             </div>

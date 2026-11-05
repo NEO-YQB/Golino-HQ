@@ -13,6 +13,7 @@ import {
   Users,
   ShieldCheck,
   Send,
+  Trash2,
 } from 'lucide-react';
 import { Department, TaskItem, EscalationMessage } from '@/types';
 
@@ -52,6 +53,20 @@ export default function DashboardPage() {
         setTasks((prev) =>
           prev.map((t) => (t.id === taskId ? { ...t, status: 'completed' } : t))
         );
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm('آیا از حذف این تسک اطمینان داری افشین جان؟')) return;
+    try {
+      const res = await fetch(`/api/tasks?taskId=${taskId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setTasks((prev) => prev.filter((t) => t.id !== taskId));
       }
     } catch (err) {
       console.error(err);
@@ -201,8 +216,16 @@ export default function DashboardPage() {
                     className="flex items-center gap-1 bg-[#1a2334] hover:bg-[#25334c] text-slate-300 text-xs px-3 py-1.5 rounded-lg transition-colors border border-[#1f293d]"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
-                    <span>فیدبک به مدیر</span>
+                    <span>فیدبک</span>
                   </Link>
+                  <button
+                    onClick={() => handleDeleteTask(task.id)}
+                    className="flex items-center gap-1 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs px-2.5 py-1.5 rounded-lg border border-rose-500/20 transition-colors"
+                    title="حذف و رد این تسک"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>حذف</span>
+                  </button>
                 </div>
               </div>
             ))}
