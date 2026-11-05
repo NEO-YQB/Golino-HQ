@@ -29,22 +29,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Department not found' }, { status: 404 });
     }
 
-    // 1. Save CEO Message
+    // 1. Save Afshin's Message
     const ceoMsg: ChatMessage = {
       id: `ceo-${Date.now()}`,
       departmentId: deptId,
       sender: 'ceo',
-      senderName: 'مدیرعامل گلینو',
+      senderName: 'افشین (مدیرعامل)',
       text,
       timestamp: 'همین الان',
     };
     await addChatMessage(deptId, ceoMsg);
 
-    // 2. Query Lead Agent
+    // 2. Query Lead Agent (with natural personality & analytical depth)
     const history = await getChatHistory(deptId);
     const { replyText, actionsTaken, newTask } = await askDepartmentLead(department, history, text);
 
-    // 3. If a task was formulated, save it to the Task Queue!
+    // 3. If a concrete task was agreed upon, save it
     let createdTaskInfo: ChatMessage['createdTask'] = undefined;
     if (newTask) {
       const taskItem: TaskItem = {
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
         priority: 'high',
         createdAt: 'امروز',
         dueDateFa: 'امروز / فردا',
-        notesFa: `ایجاد شده در جلسه کاری مدیرعامل با ${department.leadAgent.name}`,
+        notesFa: `به پیشنهاد ${department.leadAgent.name} در گفتگو با افشین`,
         contentFa: newTask.contentFa,
         imageUrl: newTask.imageUrl,
         targetChannels: newTask.targetChannels || ['تلگرام', 'بله', 'اینستاگرام'],
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
       senderName: `${department.leadAgent.name} (${department.leadAgent.roleFa})`,
       text: replyText,
       timestamp: 'همین الان',
-      actionsTaken,
+      actionsTaken: actionsTaken.length > 0 ? actionsTaken : undefined,
       createdTask: createdTaskInfo,
     };
     await addChatMessage(deptId, leadMsg);

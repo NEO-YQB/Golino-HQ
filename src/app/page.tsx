@@ -78,10 +78,10 @@ export default function DashboardPage() {
             <span className="text-xs text-slate-400">کنسول فرماندهی ۲۴/۷</span>
           </div>
           <h1 className="text-xl md:text-2xl font-black text-white mb-1">
-            درود جناب مدیرعامل؛ تیم‌های سازمان آماده دستور شما هستند
+            درود افشین عزیز؛ تیم‌های اجرایی آماده هم‌فکری و دستورات تو هستند
           </h1>
           <p className="text-xs md:text-sm text-slate-300 max-w-2xl leading-relaxed">
-            دپارتمان شبکه‌های اجتماعی گلینو با ۶ ادمین تخصصی (تلگرام، بله، اینستاگرام، روبیکا، توییتر و لینکدین) به همراه تیم تولید محتوا و تصویر مستقر شده‌اند. برای شروع، اولین جلسه کاری را با «سارا راد» یا «آرشام سئو» آغاز فرمایید.
+            مدیران دپارتمان‌های سوشال مدیا، سئو و عملیات گلینو مستقر شده‌اند. می‌توانی در اتاق جلسات با آن‌ها آزادانه گفتگو کنی، تحلیل و نظراتشان را بشنوی و استراتژی‌های جدید را با هم پیش ببرید.
           </p>
         </div>
         <div className="absolute -left-10 -bottom-10 w-48 h-48 bg-gold-400/10 rounded-full blur-3xl pointer-events-none"></div>

@@ -254,36 +254,36 @@ export default function MeetingRoomPage() {
 
       {/* Quick Prompts Bar */}
       <div className="px-3 py-2 bg-[#0e1420]/70 border-t border-[#1f293d] flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-        <span className="text-[10px] text-slate-400 shrink-0 ml-1">پیشنهاد سریع:</span>
+        <span className="text-[10px] text-slate-400 shrink-0 ml-1">پیشنهاد موضوع گفتگو:</span>
         <button
           onClick={() =>
             handleQuickPrompt(
-              'سارا، یک برنامه محتوایی ۵ روزه متمرکز بر باکس‌های رز پاییزی و تخفیف آخر هفته برای تلگرام، بله و اینستاگرام آماده کن.'
+              'سارا نظرت در مورد کمپین آخر هفته چیه؟ به نظرت روی چه دسته‌گل‌هایی تمرکز کنیم تا ورودی بهتری بگیریم؟'
             )
           }
           className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
         >
-          🌸 برنامه محتوایی ۵ روزه باکس رز
+          💡 هم‌فکری برای استراتژی کمپین آخر هفته
         </button>
         <button
           onClick={() =>
             handleQuickPrompt(
-              'امیر و پریا چطور به پیام‌ها و سوالات خریداران پاسخ می‌دهند؟ وضعیت تعامل کانال‌ها چطوره؟'
+              'امیر و پریا چطور با مشتری‌ها توی دایرکت و تلگرام تعامل می‌کنند؟ نرخ تبدیل استعلام‌ها به سفارش چطوره؟'
             )
           }
           className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
         >
-          💬 استعلام وضعیت پاسخگویی ادمین‌ها
+          💬 تحلیل وضعیت تعامل و پاسخگویی ادمین‌ها
         </button>
         <button
           onClick={() =>
             handleQuickPrompt(
-              'یک سناریوی ریلز اینستاگرام به همراه متن پست تلگرام برای تخفیف جمعه آماده کنید.'
+              'برای فروش گل‌های لوکس و هدیه سازمانی چه ایده‌ای داری که بتونیم با شرکت‌ها وارد مذاکره بشیم؟'
             )
           }
           className="text-[11px] bg-[#1a2334] hover:bg-[#25334c] text-slate-300 px-2.5 py-1 rounded-full border border-[#25334c] shrink-0 transition-colors"
         >
-          🎬 سناریوی ریلز و تخفیف جمعه
+          💼 ایده برای هدیه سازمانی و جذب گل‌فروشان
         </button>
       </div>
 
@@ -296,7 +296,7 @@ export default function MeetingRoomPage() {
           type="text"
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
-          placeholder={`دستور شما به ${lead.name}...`}
+          placeholder={`گفتگو و تبادل نظر با ${lead.name}...`}
           className="flex-1 bg-[#161f30] text-sm text-white px-4 py-2.5 rounded-xl border border-[#25334c] focus:outline-none focus:border-gold-400 placeholder:text-slate-500 transition-colors"
           disabled={sending}
         />
