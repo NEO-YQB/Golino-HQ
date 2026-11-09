@@ -116,11 +116,15 @@ async function executeDepartmentTool(
   const cleanTag = normalizeDeptTag(args.tag || defaultDeptId, defaultDeptId);
 
   if (toolName === 'getDepartmentTasks') {
-    const tasks = await getTasksByTag(cleanTag, args.status);
+    let tasks = await getTasksByTag(cleanTag, args.status);
+    if (tasks.length === 0 && args.status && args.status !== 'all') {
+      // Fallback: If no tasks with requested status, return all tasks for this tag so agent sees completed tasks
+      tasks = await getTasksByTag(cleanTag, 'all');
+    }
     const summary = tasks.slice(0, 10).map((t) => ({
       id: t.id,
       title: t.titleFa,
-      status: t.status,
+      status: t.status === 'completed' ? 'تکمیل‌شده' : t.status === 'in_progress' ? 'در حال اجرا' : 'در انتظار',
       assignedTo: t.assignedAgentName,
       dueDateFa: t.dueDateFa,
       notes: t.notesFa,
@@ -245,7 +249,7 @@ export async function askDepartmentLead(
       contents.push({ role: 'user', parts: [{ text: ceoPrompt }] });
     }
 
-    const candidateModels = ['gemini-3.5-flash', 'gemini-3.5-flash-lite'];
+    const candidateModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash'];
     let lastError = '';
 
     for (const model of candidateModels) {
@@ -274,34 +278,39 @@ export async function askDepartmentLead(
           const firstCandidate = data.candidates?.[0];
           const parts = firstCandidate?.content?.parts || [];
 
-          // Check if Gemini invoked an MCP tool
-          const functionCallPart = parts.find((p: any) => p.functionCall);
+          // Detect ALL parallel function calls emitted by Gemini
+          const functionCallParts = parts.filter((p: any) => p.functionCall);
 
-          if (functionCallPart && functionCallPart.functionCall) {
-            const fCall = functionCallPart.functionCall;
-            const toolExec = await executeDepartmentTool(fCall.name, fCall.args || {}, deptTag);
+          if (functionCallParts.length > 0) {
+            // Execute all tools in parallel
+            const toolExecutions = await Promise.all(
+              functionCallParts.map((fPart: any) =>
+                executeDepartmentTool(fPart.functionCall.name, fPart.functionCall.args || {}, deptTag)
+              )
+            );
 
-            actionsTaken.push(toolExec.actionDescription);
-            if (toolExec.newTask) {
-              newTask = toolExec.newTask;
+            for (const exec of toolExecutions) {
+              actionsTaken.push(exec.actionDescription);
+              if (exec.newTask) {
+                newTask = exec.newTask;
+              }
             }
 
-            // Append model function call turn and tool response turn
+            // Append model turn with ALL parts returned by Gemini
             contents.push({
               role: 'model',
               parts: parts,
             });
 
+            // Append user turn containing responses for EVERY function call in parallel
             contents.push({
               role: 'user',
-              parts: [
-                {
-                  functionResponse: {
-                    name: fCall.name,
-                    response: toolExec.result,
-                  },
+              parts: functionCallParts.map((fPart: any, idx: number) => ({
+                functionResponse: {
+                  name: fPart.functionCall.name,
+                  response: toolExecutions[idx].result,
                 },
-              ],
+              })),
             });
 
             // Second roundtrip to obtain natural conversational explanation (tools omitted to prevent echo)
@@ -340,16 +349,18 @@ export async function askDepartmentLead(
                 break;
               }
             } else {
-              // Fallback if follow-up failed: format tool result gracefully in Persian
-              if (fCall.name === 'getDepartmentSchedules' && toolExec.result?.schedules) {
-                const sList = toolExec.result.schedules;
-                replyText = `افشین جان، وضعیت برنامه‌های زمان‌بندی واحد سئو به این صورته:\n` +
-                  sList.map((s: any) => `📌 **${s.title}** (پیشرفت: ${s.progressPercent}٪)\n` +
-                    (s.completedSteps?.length ? `✅ کارهای انجام‌شده:\n${s.completedSteps.map((cs: string) => `- ${cs}`).join('\n')}\n` : '') +
-                    (s.pendingSteps?.length ? `⏳ کارهای در پیش‌رو:\n${s.pendingSteps.map((ps: string) => `- ${ps}`).join('\n')}` : '')
-                  ).join('\n\n');
-                break;
+              // Graceful Persian summary fallback from executed tools
+              const summaryParts: string[] = [`سلام افشین جان، وضعیت واحد سئو به این شرح است:`];
+              for (const exec of toolExecutions) {
+                if (exec.result?.tasks) {
+                  summaryParts.push(`\n📋 **تسک‌ها:**\n` + exec.result.tasks.map((t: any) => `- ${t.title} (${t.status})`).join('\n'));
+                }
+                if (exec.result?.schedules) {
+                  summaryParts.push(`\n🗓️ **برنامه‌ها:**\n` + exec.result.schedules.map((s: any) => `- ${s.title} (پیشرفت: ${s.progressPercent}٪)`).join('\n'));
+                }
               }
+              replyText = summaryParts.join('\n');
+              break;
             }
           }
 
