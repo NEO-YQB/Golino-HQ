@@ -198,6 +198,26 @@ export async function saveTasks(tasks: TaskItem[]) {
   writeJsonFile('tasks.json', tasks);
 }
 
+export async function getTasksByTag(tag: string, status?: string): Promise<TaskItem[]> {
+  const allTasks = await getTasks();
+  const cleanTag = tag.replace(/^#/, '').toLowerCase();
+  return allTasks.filter((t) => {
+    const matchesTag = t.departmentId.toLowerCase() === cleanTag;
+    if (!matchesTag) return false;
+    if (status && status !== 'all' && t.status !== status) return false;
+    return true;
+  });
+}
+
+export async function updateTaskStatusInStorage(taskId: string, status: any): Promise<TaskItem | null> {
+  const allTasks = await getTasks();
+  const task = allTasks.find((t) => t.id === taskId);
+  if (!task) return null;
+  task.status = status;
+  await saveTask(task);
+  return task;
+}
+
 export async function deleteTask(taskId: string): Promise<boolean> {
   if (isDbConnected()) {
     try {

@@ -34,18 +34,14 @@ export async function POST(req: Request) {
     // 1. Fetch previous history BEFORE adding this prompt
     const previousHistory = await getChatHistory(deptId);
 
-    // 2. Fetch department background knowledge from DB
-    const deptKnowledge = await getDepartmentKnowledge(deptId);
-
-    // 3. Query Lead Agent - completely open, human, un-templated
-    const { replyText, newTask } = await askDepartmentLead(
+    // 2. Query Lead Agent with Tool Calling / MCP (Slim context, dynamic tools)
+    const { replyText, newTask, actionsTaken } = await askDepartmentLead(
       department,
       previousHistory,
-      text,
-      deptKnowledge
+      text
     );
 
-    // 4. Save Afshin's message
+    // 3. Save Afshin's message
     const ceoMsg: ChatMessage = {
       id: `ceo-${Date.now()}`,
       departmentId: deptId,
@@ -56,14 +52,13 @@ export async function POST(req: Request) {
     };
     await addChatMessage(deptId, ceoMsg);
 
-    // 5. If a task was explicitly requested by Afshin, save it
+    // 4. If a task was created via MCP tool, update activeTasksCount
     if (newTask) {
-      await saveTask(newTask);
       department.activeTasksCount += 1;
       await saveDepartments(departments);
     }
 
-    // 6. Save Lead Response
+    // 5. Save Lead Response (including real-time actions taken)
     const leadMsg: ChatMessage = {
       id: `lead-${Date.now()}`,
       departmentId: deptId,
@@ -71,6 +66,7 @@ export async function POST(req: Request) {
       senderName: `${department.leadAgent.name} (${department.leadAgent.roleFa})`,
       text: replyText,
       timestamp: 'همین الان',
+      actionsTaken: actionsTaken && actionsTaken.length > 0 ? actionsTaken : undefined,
     };
     await addChatMessage(deptId, leadMsg);
 
@@ -78,6 +74,7 @@ export async function POST(req: Request) {
       ceoMessage: ceoMsg,
       leadMessage: leadMsg,
       taskCreated: !!newTask,
+      actionsTaken: actionsTaken || [],
     });
   } catch (err) {
     console.error('Meeting API error:', err);

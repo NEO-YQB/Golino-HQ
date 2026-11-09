@@ -206,6 +206,20 @@ export default function MeetingRoomPage() {
                   <span>{msg.timestamp}</span>
                 </div>
 
+                {!isCeo && msg.actionsTaken && msg.actionsTaken.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-1.5 max-w-[90%] md:max-w-[78%]">
+                    {msg.actionsTaken.map((action, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-1.5 text-[10px] bg-gold-400/10 text-gold-400 border border-gold-400/25 px-2.5 py-1 rounded-lg font-medium shadow-sm"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-gold-400 animate-pulse"></span>
+                        <span>{action}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div
                   className={`max-w-[90%] md:max-w-[78%] rounded-2xl p-4 text-xs md:text-sm leading-relaxed whitespace-pre-wrap ${
                     isCeo
