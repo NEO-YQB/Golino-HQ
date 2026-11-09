@@ -98,12 +98,22 @@ const DEPARTMENT_TOOLS = [
   },
 ];
 
+function normalizeDeptTag(rawTag: string, defaultDeptId: string): string {
+  if (!rawTag) return defaultDeptId;
+  const tag = rawTag.replace(/^#/, '').trim().toLowerCase();
+  if (tag.includes('سئو') || tag === 'seo') return 'seo';
+  if (tag.includes('سوشال') || tag.includes('اجتماعی') || tag.includes('برند') || tag === 'social') return 'social';
+  if (tag.includes('پشتیبان') || tag.includes('crm') || tag.includes('مشتری') || tag === 'support') return 'support';
+  if (tag.includes('تامین') || tag.includes('فروشند') || tag === 'vendors' || tag === 'vendor') return 'vendors';
+  return defaultDeptId;
+}
+
 async function executeDepartmentTool(
   toolName: string,
   args: any,
   defaultDeptId: string
 ): Promise<{ result: any; actionDescription: string; newTask?: TaskItem }> {
-  const cleanTag = (args.tag || defaultDeptId).replace(/^#/, '').toLowerCase();
+  const cleanTag = normalizeDeptTag(args.tag || defaultDeptId, defaultDeptId);
 
   if (toolName === 'getDepartmentTasks') {
     const tasks = await getTasksByTag(cleanTag, args.status);
@@ -164,13 +174,12 @@ async function executeDepartmentTool(
       id: s.id,
       title: s.titleFa,
       progressPercent: s.progressPercent,
-      steps: s.steps.map((st) => ({
-        stepNumber: st.stepNumber,
-        title: st.titleFa,
-        status: st.status,
-        targetDateFa: st.targetDateFa,
-        completedDateFa: st.completedDateFa,
-      })),
+      completedSteps: s.steps
+        .filter((st) => st.status === 'completed')
+        .map((st) => `گام ${st.stepNumber}: ${st.titleFa} (انجام‌شده در ${st.completedDateFa || 'ثبت‌شده'})`),
+      pendingSteps: s.steps
+        .filter((st) => st.status !== 'completed')
+        .map((st) => `گام ${st.stepNumber}: ${st.titleFa} (موعد انجام: ${st.targetDateFa})`),
     }));
     return {
       result: { count: summary.length, tag: cleanTag, schedules: summary },
@@ -295,7 +304,7 @@ export async function askDepartmentLead(
               ],
             });
 
-            // Second roundtrip to obtain natural conversational explanation
+            // Second roundtrip to obtain natural conversational explanation (tools omitted to prevent echo)
             const followUpRes = await fetch(
               `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
               {
@@ -303,9 +312,12 @@ export async function askDepartmentLead(
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   contents,
-                  tools: DEPARTMENT_TOOLS,
                   systemInstruction: {
-                    parts: [{ text: systemInstruction }],
+                    parts: [
+                      {
+                        text: `${systemInstruction}\n\n📌 دستورالعمل مهم: داده‌های بالا هم‌اکنون به صورت زنده از تسک‌منیجر/برنامه‌های واحدت دریافت شد. بر اساس این اطلاعات دقیق، به عنوان «${lead.name}» پاسخی صمیمی، طبیعی، ساختاریافته و کاملاً فارسی برای افشین بگو. هرگز از نام توابع، کلمات انگلیسی یا ساختارهای فنی در پاسخت استفاده نکن.`,
+                      },
+                    ],
                   },
                   generationConfig: {
                     temperature: 0.85,
@@ -319,7 +331,23 @@ export async function askDepartmentLead(
               const followUpData = await followUpRes.json();
               const textPart = followUpData.candidates?.[0]?.content?.parts?.find((p: any) => p.text);
               if (textPart && textPart.text) {
-                replyText = textPart.text;
+                let cleanText = textPart.text;
+                // Sanitize any stray tool syntax
+                if (cleanText.includes('response:default_api:')) {
+                  cleanText = cleanText.replace(/response:default_api:\w+\{[^}]*\}/gi, '').trim();
+                }
+                replyText = cleanText;
+                break;
+              }
+            } else {
+              // Fallback if follow-up failed: format tool result gracefully in Persian
+              if (fCall.name === 'getDepartmentSchedules' && toolExec.result?.schedules) {
+                const sList = toolExec.result.schedules;
+                replyText = `افشین جان، وضعیت برنامه‌های زمان‌بندی واحد سئو به این صورته:\n` +
+                  sList.map((s: any) => `📌 **${s.title}** (پیشرفت: ${s.progressPercent}٪)\n` +
+                    (s.completedSteps?.length ? `✅ کارهای انجام‌شده:\n${s.completedSteps.map((cs: string) => `- ${cs}`).join('\n')}\n` : '') +
+                    (s.pendingSteps?.length ? `⏳ کارهای در پیش‌رو:\n${s.pendingSteps.map((ps: string) => `- ${ps}`).join('\n')}` : '')
+                  ).join('\n\n');
                 break;
               }
             }
@@ -328,8 +356,14 @@ export async function askDepartmentLead(
           // If standard text without function call
           const plainText = parts.find((p: any) => p.text)?.text;
           if (plainText && plainText.trim().length > 0) {
-            replyText = plainText;
-            break;
+            let cleanPlain = plainText;
+            if (cleanPlain.includes('response:default_api:')) {
+              cleanPlain = cleanPlain.replace(/response:default_api:\w+\{[^}]*\}/gi, '').trim();
+            }
+            if (cleanPlain) {
+              replyText = cleanPlain;
+              break;
+            }
           }
         } else {
           const errorText = await response.text();
