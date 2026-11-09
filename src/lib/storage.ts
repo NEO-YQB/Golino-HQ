@@ -7,6 +7,8 @@ import {
   EscalationMessage,
   ChatMessage,
   BoardroomSession,
+  DepartmentSchedule,
+  ScheduleStep,
 } from '@/types';
 import {
   INITIAL_DEPARTMENTS,
@@ -14,8 +16,10 @@ import {
   INITIAL_REPORTS,
   INITIAL_ESCALATIONS,
   INITIAL_CHAT_HISTORY,
+  INITIAL_SCHEDULES,
 } from './data';
 import { prisma, isDbConnected } from './prisma';
+import { getTodayPersianDate } from './persianDate';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 
@@ -477,5 +481,193 @@ export async function getDepartmentKnowledge(deptId: string): Promise<string> {
     }
   }
 
+  // 4. Inject Department Schedules (برنامه‌ها و زمان‌بندی‌های مدیر)
+  const schedules = await getSchedules(deptId);
+  if (schedules.length > 0) {
+    parts.push('\n🗓️ برنامه‌ها و زمان‌بندی‌های در حال اجرا یا ثبت‌شده:');
+    for (const s of schedules) {
+      parts.push(`\n- برنامه: «${s.titleFa}» (پیشرفت: ${s.progressPercent}٪ | بازه: ${s.startDateFa} تا ${s.targetDateFa})`);
+      for (const st of s.steps) {
+        const statusText =
+          st.status === 'completed'
+            ? `انجام‌شده در ${st.completedDateFa || 'تاریخ نامشخص'}`
+            : `موعد انجام: ${st.targetDateFa}`;
+        parts.push(`  • گام ${st.stepNumber}: ${st.titleFa} [مسئول: ${st.assignedTo}] (${statusText})`);
+      }
+    }
+  }
+
   return parts.join('\n');
+}
+
+// -------------------------------------------------------------
+// Department Multi-Step Schedules
+// -------------------------------------------------------------
+export async function getSchedules(departmentId?: string): Promise<DepartmentSchedule[]> {
+  // Always check DB first if table exists
+  if (isDbConnected()) {
+    try {
+      // If table exists in Prisma
+      if ((prisma as any).departmentSchedule) {
+        const dbSchedules = await (prisma as any).departmentSchedule.findMany({
+          where: departmentId ? { departmentId } : undefined,
+          orderBy: { createdAt: 'desc' },
+        });
+        if (dbSchedules && dbSchedules.length > 0) {
+          return dbSchedules.map((s: any) => ({
+            id: s.id,
+            departmentId: s.departmentId,
+            departmentNameFa: s.departmentNameFa,
+            creatorAgentName: s.creatorAgentName,
+            creatorRoleFa: s.creatorRoleFa || undefined,
+            creatorAvatar: s.creatorAvatar || undefined,
+            titleFa: s.titleFa,
+            descriptionFa: s.descriptionFa,
+            startDateFa: s.startDateFa,
+            targetDateFa: s.targetDateFa,
+            status: s.status,
+            progressPercent: s.progressPercent,
+            steps: typeof s.steps === 'string' ? JSON.parse(s.steps) : s.steps,
+            createdAtFa: s.createdAt.toLocaleDateString('fa-IR'),
+            updatedAtFa: s.updatedAt ? s.updatedAt.toLocaleDateString('fa-IR') : undefined,
+          }));
+        }
+      }
+    } catch (err) {
+      // Table might not exist yet before db push, seamlessly fall back to JSON
+      console.warn('Database getSchedules notice (falling back to JSON store):', err);
+    }
+  }
+
+  const all = readJsonFile<DepartmentSchedule[]>('schedules.json', INITIAL_SCHEDULES);
+  if (departmentId) {
+    return all.filter((s) => s.departmentId === departmentId);
+  }
+  return all;
+}
+
+export async function saveSchedule(schedule: DepartmentSchedule): Promise<void> {
+  const all = await getSchedules();
+  const index = all.findIndex((s) => s.id === schedule.id);
+
+  // Re-calculate progressPercent strictly based on steps
+  if (schedule.steps && schedule.steps.length > 0) {
+    const completedCount = schedule.steps.filter((s) => s.status === 'completed').length;
+    schedule.progressPercent = Math.round((completedCount / schedule.steps.length) * 100);
+    if (schedule.progressPercent === 100) {
+      schedule.status = 'completed';
+    } else if (schedule.status === 'completed' && schedule.progressPercent < 100) {
+      schedule.status = 'in_progress';
+    }
+  }
+
+  if (index >= 0) {
+    all[index] = { ...all[index], ...schedule, updatedAtFa: getTodayPersianDate() };
+  } else {
+    all.unshift({
+      ...schedule,
+      createdAtFa: schedule.createdAtFa || getTodayPersianDate(),
+      updatedAtFa: getTodayPersianDate(),
+    });
+  }
+
+  writeJsonFile('schedules.json', all);
+
+  if (isDbConnected() && (prisma as any).departmentSchedule) {
+    try {
+      await (prisma as any).departmentSchedule.upsert({
+        where: { id: schedule.id },
+        update: {
+          titleFa: schedule.titleFa,
+          descriptionFa: schedule.descriptionFa,
+          startDateFa: schedule.startDateFa,
+          targetDateFa: schedule.targetDateFa,
+          status: schedule.status,
+          progressPercent: schedule.progressPercent,
+          steps: schedule.steps,
+        },
+        create: {
+          id: schedule.id,
+          departmentId: schedule.departmentId,
+          departmentNameFa: schedule.departmentNameFa,
+          creatorAgentName: schedule.creatorAgentName,
+          titleFa: schedule.titleFa,
+          descriptionFa: schedule.descriptionFa,
+          startDateFa: schedule.startDateFa,
+          targetDateFa: schedule.targetDateFa,
+          status: schedule.status,
+          progressPercent: schedule.progressPercent,
+          steps: schedule.steps,
+        },
+      });
+    } catch (err) {
+      console.warn('Database saveSchedule notice:', err);
+    }
+  }
+}
+
+export async function deleteSchedule(id: string): Promise<boolean> {
+  const all = await getSchedules();
+  const filtered = all.filter((s) => s.id !== id);
+  writeJsonFile('schedules.json', filtered);
+
+  if (isDbConnected() && (prisma as any).departmentSchedule) {
+    try {
+      await (prisma as any).departmentSchedule.delete({
+        where: { id },
+      });
+    } catch {
+      // Ignore
+    }
+  }
+  return true;
+}
+
+export async function toggleScheduleStepStatus(
+  scheduleId: string,
+  stepId: string
+): Promise<DepartmentSchedule | null> {
+  const all = await getSchedules();
+  const schedule = all.find((s) => s.id === scheduleId);
+  if (!schedule) return null;
+
+  const step = schedule.steps.find((st) => st.id === stepId);
+  if (!step) return null;
+
+  if (step.status === 'completed') {
+    step.status = 'in_progress';
+    step.completedDateFa = undefined;
+  } else {
+    step.status = 'completed';
+    step.completedDateFa = getTodayPersianDate();
+  }
+
+  // Recalculate progress
+  const completedCount = schedule.steps.filter((s) => s.status === 'completed').length;
+  schedule.progressPercent = Math.round((completedCount / schedule.steps.length) * 100);
+  if (schedule.progressPercent === 100) {
+    schedule.status = 'completed';
+  } else {
+    schedule.status = 'in_progress';
+  }
+  schedule.updatedAtFa = getTodayPersianDate();
+
+  writeJsonFile('schedules.json', all);
+
+  if (isDbConnected() && (prisma as any).departmentSchedule) {
+    try {
+      await (prisma as any).departmentSchedule.update({
+        where: { id: scheduleId },
+        data: {
+          progressPercent: schedule.progressPercent,
+          status: schedule.status,
+          steps: schedule.steps,
+        },
+      });
+    } catch {
+      // Ignore
+    }
+  }
+
+  return schedule;
 }

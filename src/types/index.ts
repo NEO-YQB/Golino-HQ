@@ -127,3 +127,40 @@ export interface SocialChannelConfig {
   channelId?: string;
   notesFa: string;
 }
+
+// -------------------------------------------------------------
+// Department Multi-Step Schedules (برنامه‌ها و زمان‌بندی‌های چند مرحله‌ای)
+// -------------------------------------------------------------
+export type ScheduleStepStatus = 'completed' | 'in_progress' | 'pending';
+export type ScheduleStatus = 'planned' | 'in_progress' | 'completed' | 'delayed';
+
+export interface ScheduleStep {
+  id: string;
+  stepNumber: number;
+  titleFa: string;
+  descriptionFa?: string;
+  assignedTo: string;
+  status: ScheduleStepStatus;
+  targetDateFa: string;     // تاریخی که باید انجام شود (شمسی)
+  completedDateFa?: string; // تاریخی که انجام شده (شمسی)
+  notesFa?: string;         // بازخورد و نتیجه مرحله
+}
+
+export interface DepartmentSchedule {
+  id: string;
+  departmentId: string;
+  departmentNameFa: string;
+  creatorAgentName: string;
+  creatorRoleFa?: string;
+  creatorAvatar?: string;
+  titleFa: string;
+  descriptionFa: string;
+  startDateFa: string;      // تاریخ شروع شمسی
+  targetDateFa: string;     // تاریخ هدف پایان شمسی
+  status: ScheduleStatus;
+  progressPercent: number;  // ۰ تا ۱۰۰
+  steps: ScheduleStep[];
+  createdAtFa: string;
+  updatedAtFa?: string;
+}
+

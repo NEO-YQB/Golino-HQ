@@ -11,6 +11,7 @@ import {
   FileText,
   Bell,
   Sparkles,
+  CalendarDays,
 } from 'lucide-react';
 
 export default function Navigation() {
@@ -32,6 +33,7 @@ export default function Navigation() {
   const navItems = [
     { href: '/', label: 'داشبورد', icon: LayoutDashboard },
     { href: '/departments', label: 'دپارتمان‌ها', icon: Building2 },
+    { href: '/schedules', label: 'زمان‌بندی‌ها', icon: CalendarDays },
     { href: '/boardroom', label: 'هیئت‌مدیره', icon: Users },
     { href: '/tasks', label: 'صف تسک‌ها', icon: CheckSquare },
     { href: '/reports', label: 'گزارش‌ها', icon: FileText },
@@ -57,6 +59,32 @@ export default function Navigation() {
             </div>
           </div>
 
+          {/* Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center gap-1 bg-[#121824] p-1 rounded-xl border border-[#1f293d]">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                item.href === '/'
+                  ? pathname === '/'
+                  : pathname.startsWith(item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                    isActive
+                      ? 'bg-gold-500/15 text-gold-400 font-bold border border-gold-500/30'
+                      : 'text-hq-muted hover:text-white hover:bg-[#1a2334]'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 bg-[#121824] px-2.5 py-1 rounded-full border border-emerald-500/20">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -80,8 +108,8 @@ export default function Navigation() {
       </header>
 
       {/* Bottom Navigation for Mobile / Tablet */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0b0f17]/95 backdrop-blur-lg border-t border-[#1f293d] px-2 py-2">
-        <div className="max-w-md mx-auto grid grid-cols-5 gap-1">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0b0f17]/95 backdrop-blur-lg border-t border-[#1f293d] px-2 py-2">
+        <div className="max-w-md mx-auto grid grid-cols-6 gap-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -93,14 +121,14 @@ export default function Navigation() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+                className={`flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all ${
                   isActive
                     ? 'text-gold-400 bg-gold-400/10 font-bold'
                     : 'text-hq-muted hover:text-slate-200'
                 }`}
               >
-                <Icon className={`w-5 h-5 mb-1 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
-                <span className="text-[11px] truncate">{item.label}</span>
+                <Icon className={`w-4 h-4 mb-1 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                <span className="text-[10px] truncate">{item.label}</span>
               </Link>
             );
           })}

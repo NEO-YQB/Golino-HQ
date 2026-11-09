@@ -57,31 +57,53 @@ export async function askDepartmentLead(
       contents.push({ role: 'user', parts: [{ text: ceoPrompt }] });
     }
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents,
-          systemInstruction: {
-            parts: [{ text: systemInstruction }],
-          },
-          generationConfig: {
-            temperature: 0.9,
-            maxOutputTokens: 1200,
-          },
-        }),
-      }
-    );
+    const candidateModels = ['gemini-3.5-flash', 'gemini-3.5-flash-lite'];
+    let lastError = '';
 
-    if (response.ok) {
-      const data = await response.json();
-      replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    } else {
-      const errorText = await response.text();
-      console.error(`Gemini API returned error ${response.status}:`, errorText);
-      replyText = `⚠️ افشین جان، سرویس هوش مصنوعی گوگل خطای ${response.status} برگرداند: ${errorText.slice(0, 150)}`;
+    for (const model of candidateModels) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents,
+              systemInstruction: {
+                parts: [{ text: systemInstruction }],
+              },
+              generationConfig: {
+                temperature: 0.9,
+                maxOutputTokens: 1200,
+              },
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (candidateText && candidateText.trim().length > 0) {
+            replyText = candidateText;
+            break;
+          }
+        } else {
+          const errorText = await response.text();
+          console.warn(`Gemini model ${model} returned error ${response.status}:`, errorText);
+          lastError = `خطای ${response.status}: ${errorText.slice(0, 150)}`;
+          // If 503 or 429, continue to next fallback model immediately
+          if (response.status === 503 || response.status === 429) {
+            continue;
+          }
+        }
+      } catch (callErr: any) {
+        console.warn(`Gemini model ${model} fetch exception:`, callErr);
+        lastError = callErr?.message || String(callErr);
+      }
+    }
+
+    if (!replyText && lastError) {
+      replyText = `⚠️ افشین جان، سرویس هوش مصنوعی گوگل خطای موقت برگرداند (${lastError}). لطفاً مجدداً پیام بده.`;
     }
   } catch (err: any) {
     console.error('Error invoking Gemini API:', err);

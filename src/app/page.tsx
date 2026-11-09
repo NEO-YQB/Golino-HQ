@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Send,
   Trash2,
+  CalendarDays,
 } from 'lucide-react';
 import { Department, TaskItem, EscalationMessage } from '@/types';
 
@@ -167,6 +168,28 @@ export default function DashboardPage() {
           className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition-colors mr-auto"
         >
           <span>برگزاری جلسه هیئت‌مدیره</span>
+          <ArrowLeft className="w-4 h-4" />
+        </Link>
+      </div>
+
+      {/* Schedules Quick Banner */}
+      <div className="bg-gradient-to-r from-amber-950/40 via-gold-950/20 to-[#121824] p-4 rounded-xl border border-gold-500/30 flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gold-500/20 text-gold-400 flex items-center justify-center font-bold">
+            <CalendarDays className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white">برنامه‌ها و زمان‌بندی‌های اجرایی دپارتمان‌ها</h3>
+            <p className="text-xs text-slate-400">
+              مشاهده پیشرفت گام‌به‌گام برنامه‌های چند مرحله‌ای مدیران، موارد انجام‌شده و موعد مراحل پیش‌رو (تاریخ شمسی).
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/schedules"
+          className="flex items-center gap-1.5 bg-gold-500 hover:bg-gold-400 text-black text-xs font-bold px-3.5 py-2 rounded-lg transition-colors mr-auto"
+        >
+          <span>پایش زمان‌بندی‌ها</span>
           <ArrowLeft className="w-4 h-4" />
         </Link>
       </div>
