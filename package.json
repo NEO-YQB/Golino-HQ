@@ -5,7 +5,7 @@
   "description": "Golino Executive OS - Autonomous Multi-Department Operations & Monitoring Hub",
   "scripts": {
     "dev": "next dev -p 3005",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && (prisma db push --accept-data-loss || true) && next build",
     "start": "next start -p 3005",
     "lint": "next lint",
     "db:generate": "prisma generate",

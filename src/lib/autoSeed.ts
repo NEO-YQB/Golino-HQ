@@ -19,9 +19,9 @@ export async function ensureTablesAndSeed(): Promise<{
   }
 
   try {
-    // 1. Ensure all tables exist (Self-healing schema)
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS departments (
+    // 1. Ensure all tables exist (Self-healing schema, executed individually to prevent multi-statement prepared statement errors)
+    const tableQueries = [
+      `CREATE TABLE IF NOT EXISTS departments (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         "nameFa" TEXT NOT NULL,
@@ -33,9 +33,9 @@ export async function ensureTablesAndSeed(): Promise<{
         "errorCount" INTEGER NOT NULL DEFAULT 0,
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
+      )`,
 
-      CREATE TABLE IF NOT EXISTS agents (
+      `CREATE TABLE IF NOT EXISTS agents (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         "roleFa" TEXT NOT NULL,
@@ -49,9 +49,9 @@ export async function ensureTablesAndSeed(): Promise<{
         "systemPrompt" TEXT,
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
+      )`,
 
-      CREATE TABLE IF NOT EXISTS tasks (
+      `CREATE TABLE IF NOT EXISTS tasks (
         id TEXT PRIMARY KEY,
         "titleFa" TEXT NOT NULL,
         "departmentId" TEXT NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
@@ -66,9 +66,9 @@ export async function ensureTablesAndSeed(): Promise<{
         "targetChannels" JSONB,
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
+      )`,
 
-      CREATE TABLE IF NOT EXISTS executive_reports (
+      `CREATE TABLE IF NOT EXISTS executive_reports (
         id TEXT PRIMARY KEY,
         "departmentId" TEXT NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
         "departmentNameFa" TEXT NOT NULL,
@@ -80,9 +80,9 @@ export async function ensureTablesAndSeed(): Promise<{
         metrics JSONB,
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
+      )`,
 
-      CREATE TABLE IF NOT EXISTS meeting_messages (
+      `CREATE TABLE IF NOT EXISTS meeting_messages (
         id TEXT PRIMARY KEY,
         "departmentId" TEXT NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
         sender TEXT NOT NULL,
@@ -90,9 +90,9 @@ export async function ensureTablesAndSeed(): Promise<{
         text TEXT NOT NULL,
         "actionsTaken" JSONB,
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
+      )`,
 
-      CREATE TABLE IF NOT EXISTS escalation_alerts (
+      `CREATE TABLE IF NOT EXISTS escalation_alerts (
         id TEXT PRIMARY KEY,
         "departmentId" TEXT NOT NULL,
         "senderAgentName" TEXT NOT NULL,
@@ -102,8 +102,40 @@ export async function ensureTablesAndSeed(): Promise<{
         status TEXT NOT NULL DEFAULT 'unresolved',
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+      )`,
+
+      `CREATE TABLE IF NOT EXISTS strategies (
+        id TEXT PRIMARY KEY,
+        "departmentId" TEXT NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
+        "titleFa" TEXT NOT NULL,
+        horizon TEXT NOT NULL DEFAULT 'mid_term',
+        "descriptionFa" TEXT NOT NULL,
+        kpis JSONB,
+        status TEXT NOT NULL DEFAULT 'active',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`,
+
+      `CREATE TABLE IF NOT EXISTS content_calendar (
+        id TEXT PRIMARY KEY,
+        "departmentId" TEXT NOT NULL DEFAULT 'social' REFERENCES departments(id) ON DELETE CASCADE,
+        "scheduledAt" TIMESTAMP(3) NOT NULL,
+        channel TEXT NOT NULL,
+        "titleFa" TEXT NOT NULL,
+        "captionFa" TEXT NOT NULL,
+        "mediaUrl" TEXT,
+        status TEXT NOT NULL DEFAULT 'scheduled',
+        "publishedAt" TIMESTAMP(3),
+        "postUrl" TEXT,
+        "failureReason" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`
+    ];
+
+    for (const query of tableQueries) {
+      await prisma.$executeRawUnsafe(query);
+    }
 
     // 2. Seed / Upsert Departments & Agents
     let agentCount = 0;
