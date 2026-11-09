@@ -63,9 +63,19 @@ function writeJsonFile<T>(filename: string, data: T) {
 export async function getDepartments(): Promise<Department[]> {
   if (isDbConnected()) {
     try {
-      const depts = await prisma.department.findMany({
+      let depts = await prisma.department.findMany({
         include: { members: true },
       });
+      
+      // Auto-initialize if database is fresh / empty
+      if (depts.length === 0) {
+        const { ensureTablesAndSeed } = await import('./autoSeed');
+        await ensureTablesAndSeed();
+        depts = await prisma.department.findMany({
+          include: { members: true },
+        });
+      }
+
       if (depts.length > 0) {
         return depts.map((d) => {
           const lead = d.members.find((m) => m.isLead) || d.members[0];
@@ -124,9 +134,16 @@ export async function saveDepartments(departments: Department[]) {
 export async function getTasks(): Promise<TaskItem[]> {
   if (isDbConnected()) {
     try {
-      const dbTasks = await prisma.task.findMany({
+      let dbTasks = await prisma.task.findMany({
         orderBy: { createdAt: 'desc' },
       });
+      if (dbTasks.length === 0) {
+        const { ensureTablesAndSeed } = await import('./autoSeed');
+        await ensureTablesAndSeed();
+        dbTasks = await prisma.task.findMany({
+          orderBy: { createdAt: 'desc' },
+        });
+      }
       return dbTasks.map((t) => ({
         id: t.id,
         titleFa: t.titleFa,
@@ -247,9 +264,16 @@ export async function deleteTask(taskId: string): Promise<boolean> {
 export async function getReports(): Promise<ExecutiveReport[]> {
   if (isDbConnected()) {
     try {
-      const dbReports = await prisma.executiveReport.findMany({
+      let dbReports = await prisma.executiveReport.findMany({
         orderBy: { createdAt: 'desc' },
       });
+      if (dbReports.length === 0) {
+        const { ensureTablesAndSeed } = await import('./autoSeed');
+        await ensureTablesAndSeed();
+        dbReports = await prisma.executiveReport.findMany({
+          orderBy: { createdAt: 'desc' },
+        });
+      }
       return dbReports.map((r) => ({
         id: r.id,
         departmentId: r.departmentId,
