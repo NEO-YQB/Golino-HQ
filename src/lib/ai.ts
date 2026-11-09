@@ -4,6 +4,7 @@ import {
   saveTask,
   updateTaskStatusInStorage,
   getSchedules,
+  getReports,
 } from '@/lib/storage';
 import { getTodayPersianDate } from '@/lib/persianDate';
 
@@ -83,6 +84,20 @@ const DEPARTMENT_TOOLS = [
       {
         name: 'getDepartmentSchedules',
         description: 'پایش برنامه‌های زمان‌بندی چند مرحله‌ای واحد، گام‌های تکمیل‌شده و موعدهای پیش‌رو به تاریخ شمسی',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            tag: {
+              type: 'STRING',
+              description: 'برچسب دپارتمان: seo, social, support, vendors',
+            },
+          },
+          required: ['tag'],
+        },
+      },
+      {
+        name: 'getDepartmentReports',
+        description: 'دریافت گزارش‌های رسمی، دستاوردها، موانع و شاخص‌های کلیدی (KPI) دپارتمان بر اساس تگ واحد',
         parameters: {
           type: 'OBJECT',
           properties: {
@@ -191,6 +206,28 @@ async function executeDepartmentTool(
     };
   }
 
+  if (toolName === 'getDepartmentReports') {
+    const allReports = await getReports();
+    const deptReports = allReports.filter(
+      (r) => r.departmentId.toLowerCase() === cleanTag
+    );
+    return {
+      result: {
+        count: deptReports.length,
+        tag: cleanTag,
+        reports: deptReports.map((r) => ({
+          period: r.periodFa,
+          title: r.titleFa,
+          summary: r.summaryFa,
+          accomplishments: r.accomplishments,
+          blockers: r.blockers,
+          metrics: r.metrics,
+        })),
+      },
+      actionDescription: `دریافت گزارش‌های رسمی عملکرد واحد #${cleanTag}`,
+    };
+  }
+
   return { result: { error: 'Unknown tool' }, actionDescription: `ابزار نامشخص ${toolName}` };
 }
 
@@ -215,17 +252,22 @@ export async function askDepartmentLead(
   try {
     const deptTag = department.id.toLowerCase();
 
-    // Ultra-slim, token-efficient system instruction (~90 tokens instead of 3,500+)
     const systemInstruction = `تو «${lead.name}» هستی، ${lead.roleFa} در مارکت‌پلیس گلینو (golino.shop).
 دپارتمان تو: «${department.nameFa}» (برچسب واحد: #${deptTag}).
 طرف گفتگوی مستقیم تو «افشین» (مدیرعامل و بنیان‌گذار گلینو) است.
 
+پیش‌زمینه و شناخت تخصصی تو از وضعیت واحدت:
+${lead.systemPrompt || ''}
+
 اصول رفتار و گفتگو:
 - به عنوان یک همکار ارشد، متخصص، کاملاً طبیعی، صمیمی و بدون هیچ قالب یا چارچوب اداری گفتگو کن.
-- برای مدیریت تسک‌ها و زمان‌بندی‌ها، یک ابزار متصل به تسک‌منیجر تگ‌محور گلینو (MCP Tools) در اختیارت است.
-- فقط در صورتی که افشین درباره کارها، برنامه‌ها یا وظایف سوال کرد، از ابزار getDepartmentTasks یا getDepartmentSchedules با تگ واحدت (tag: "${deptTag}") استفاده کن. کارهای سایر واحدها را بررسی نکن.
-- اگر نیاز شد تسکی بسازی، از createDepartmentTask استفاده کن.
-- آزادانه بشنو، تحلیل کن و یک گفتگوی انسانی و روان داشته باش.`;
+- برای مدیریت تسک‌ها، گزارش‌ها و زمان‌بندی‌ها، ابزارهای متصل به سیستم عملیات گلینو (MCP Tools) در اختیارت است:
+  * getDepartmentTasks: دریافت تسک‌های جاری و تکمیل‌شده با tag: "${deptTag}"
+  * getDepartmentReports: دریافت گزارش‌های رسمی عملکرد و دستاوردها با tag: "${deptTag}"
+  * getDepartmentSchedules: پایش گام‌ها و برنامه‌های زمان‌بندی با tag: "${deptTag}"
+  * createDepartmentTask: ثبت تسک جدید
+- وقتی افشین درباره گزارش، وضعیت کارها، پیشرفت، تسک‌ها یا دستاوردها سوال می‌کند، حتماً از getDepartmentReports و getDepartmentTasks استفاده کن تا بر اساس دستاوردهای واقعی و داده‌های ثبت‌شده پاسخی دقیق و تحلیلی ارائه دهی.
+- آزادانه بشنو، تحلیل کن و یک گفتگوی انسانی، صمیمی و روان داشته باش.`;
 
     // Build clean alternating history for Gemini: strictly user -> model -> user -> model -> user
     const contents: any[] = [];
